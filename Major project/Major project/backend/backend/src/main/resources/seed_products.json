@@ -910,19 +910,6 @@
     "specifications": "{\"amplifiers\": \"1x 50W Class D for Woofer + 2x 15W Class D for Tweeters (80W total)\", \"frequency\": \"45 Hz - 20,000 Hz\", \"controls\": \"Analog Brass Knobs for Bass, Treble, Volume\", \"inputs\": \"Bluetooth 5.2, 3.5mm Aux, RCA Input\"}"
   },
   {
-    "id": 401,
-    "name": "Waterproof Laptop Sleeve Case 15.6-inch",
-    "brand": "Lenovo",
-    "category": "Accessories",
-    "price": 1299,
-    "stock": 50,
-    "rating": 4.4,
-    "review_count": 18,
-    "image_url": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop",
-    "description": "Protective water-resistant neoprene sleeve case bag with shock-absorbing foam padding and front accessory zipper pocket for 14-inch and 15.6-inch laptops.",
-    "specifications": "{\"type\": \"Sleeve Case\", \"material\": \"Neoprene / Polyester\", \"compatibility\": \"14-15.6 inch Laptops\", \"waterproof\": \"Yes\"}"
-  },
-  {
     "id": 402,
     "name": "65W GaN Fast Laptop Charger Adapter",
     "brand": "Anker",
@@ -1534,19 +1521,6 @@
     "specifications": "{\"video\": \"5.3K60 / 4K120 / 2.7K240\", \"stabilization\": \"HyperSmooth 6.0 with AutoBoost\", \"waterproof\": \"10m (33ft) without housing\", \"battery\": \"Enduro Battery with 2x longer runtime\"}"
   },
   {
-    "id": 703,
-    "name": "Sony PlayStation 5 Slim Console",
-    "brand": "Sony",
-    "category": "Cameras & Gaming",
-    "price": 49990,
-    "stock": 20,
-    "rating": 4.9,
-    "review_count": 65,
-    "image_url": "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop",
-    "description": "Next-gen gaming console with custom AMD Zen 2 CPU, RDNA 2 GPU, ultra-high speed 1TB SSD, Ray Tracing, 4K 120Hz output, Tempest 3D AudioTech, and DualSense haptic feedback.",
-    "specifications": "{\"storage\": \"1TB Custom High-Speed NVMe SSD\", \"graphics\": \"AMD RDNA 2 with Ray Tracing up to 4K 120Hz\", \"controller\": \"DualSense with Haptic Feedback & Adaptive Triggers\", \"audio\": \"Tempest 3D AudioTech\"}"
-  },
-  {
     "id": 704,
     "name": "ASUS ROG Ally Z1 Extreme Handheld Gaming",
     "brand": "ASUS",
@@ -1558,19 +1532,6 @@
     "image_url": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop",
     "description": "Windows 11 portable PC gaming console driven by AMD Ryzen Z1 Extreme with RDNA 3 graphics. 7-inch FHD 120Hz FreeSync Premium display and ergonomic controls.",
     "specifications": "{\"processor\": \"AMD Ryzen Z1 Extreme (8 cores, 16 threads, up to 5.1 GHz)\", \"graphics\": \"AMD Radeon RDNA 3 with 12 CUs\", \"ram\": \"16GB LPDDR5\", \"storage\": \"512GB PCIe 4.0 NVMe SSD\", \"display\": \"7-inch FHD 120Hz 500 nits\"}"
-  },
-  {
-    "id": 705,
-    "name": "Nintendo Switch OLED Model",
-    "brand": "Nintendo",
-    "category": "Cameras & Gaming",
-    "price": 29990,
-    "stock": 25,
-    "rating": 4.8,
-    "review_count": 64,
-    "image_url": "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=600&auto=format&fit=crop",
-    "description": "Play at home on the TV or on-the-go with vibrant 7-inch OLED screen, wide adjustable stand, wired LAN dock, and detachable Joy-Con controllers.",
-    "specifications": "{\"display\": \"7.0-inch OLED Multi-touch\", \"storage\": \"64GB Internal Expandable via MicroSD\", \"audio\": \"Enhanced Onboard Audio\", \"battery\": \"4.5 to 9 hours\", \"modes\": \"TV Mode, Tabletop, Handheld\"}"
   },
   {
     "id": 707,
@@ -2845,18 +2806,5 @@
     "image_url": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop",
     "description": "The all-rounder standard for hybrid creators. 33MP full-frame Exmor R back-illuminated sensor, BIONZ XR engine, 4K 60p 10-bit 4:2:2 video, S-Cinetone color science, and real-time Eye AF for humans, animals, and birds.",
     "specifications": "{\"sensor\": \"33.0 MP 35mm Full-Frame Back-Illuminated Exmor R CMOS\", \"processor\": \"BIONZ XR image processing engine\", \"autofocus\": \"759 phase-detection AF points with Real-time Eye AF\", \"video\": \"4K 60p (Super 35), 4K 30p 7K oversampled 10-bit 4:2:2\", \"stabilization\": \"5-axis in-body optical image stabilization (5.5 steps)\"}"
-  },
-  {
-    "id": 2508,
-    "name": "Nintendo Switch OLED Model Mario Red Edition Console",
-    "brand": "Nintendo",
-    "category": "Cameras & Gaming",
-    "price": 32990,
-    "stock": 20,
-    "rating": 4.8,
-    "review_count": 115,
-    "image_url": "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=600&auto=format&fit=crop",
-    "description": "Signature Mario Red hue featuring subtle hidden silhouette coin motifs. Vibrant 7-inch OLED screen with vivid colors and crisp contrast, wide adjustable stand, enhanced audio, and dock with wired LAN port.",
-    "specifications": "{\"screen\": \"7.0-inch OLED multi-touch display (1280 x 720)\", \"storage\": \"64 GB internal storage (expandable with microSD up to 2TB)\", \"modes\": \"TV Mode, Tabletop Mode, Handheld Mode\", \"dock\": \"Includes dock with wired RJ45 LAN port and HDMI\", \"battery\": \"4.5 to 9 hours depending on game\"}"
   }
 ]

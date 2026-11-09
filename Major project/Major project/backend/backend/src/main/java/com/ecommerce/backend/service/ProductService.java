@@ -24,6 +24,9 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private static final java.util.Set<String> STOP_WORDS = java.util.Set.of(
             "with", "under", "below", "above", "for", "in", "the", "a", "an", "and", "or", "of", "to", "best", "good", "top"
     );
@@ -506,6 +509,10 @@ public class ProductService {
         if (!productRepository.existsById(id)) {
             throw new IllegalArgumentException("Cannot delete: product not found with id: " + id);
         }
+        jdbcTemplate.update("DELETE FROM wishlist WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM interactions WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM reviews WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM order_items WHERE product_id = ?", id);
         productRepository.deleteById(id);
     }
 

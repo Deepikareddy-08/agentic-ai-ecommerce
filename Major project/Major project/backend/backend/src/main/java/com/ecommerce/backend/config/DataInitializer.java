@@ -49,7 +49,24 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedAdminUser();
+        purgeRemovedProducts();
         seedCatalogProducts();
+    }
+
+    private void purgeRemovedProducts() {
+        try {
+            List<Long> removedIds = List.of(401L, 703L, 705L, 2508L);
+            for (Long id : removedIds) {
+                jdbcTemplate.update("DELETE FROM wishlist WHERE product_id = ?", id);
+                jdbcTemplate.update("DELETE FROM interactions WHERE product_id = ?", id);
+                jdbcTemplate.update("DELETE FROM reviews WHERE product_id = ?", id);
+                jdbcTemplate.update("DELETE FROM order_items WHERE product_id = ?", id);
+                jdbcTemplate.update("DELETE FROM products WHERE id = ?", id);
+            }
+            logger.info("[DataInitializer] Purged removed products: {}", removedIds);
+        } catch (Exception e) {
+            logger.warn("[DataInitializer] Note during purge of removed products: {}", e.getMessage());
+        }
     }
 
     private void seedAdminUser() {
