@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: aurastore-backend
+    env: docker
+    rootDir: Major project/Major project/backend/backend
+    dockerContext: Major project/Major project/backend/backend
+    dockerfilePath: Major project/Major project/backend/backend/Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/products
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: aurastore-postgres
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: aurastore-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: aurastore-postgres
+          property: password
+      - key: JWT_SECRET
+        value: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      - key: SERVER_PORT
+        value: 8080
+
+databases:
+  - name: aurastore-postgres
+    databaseName: ecommerce_db
+    user: postgres
+    plan: free
+    region: oregon
