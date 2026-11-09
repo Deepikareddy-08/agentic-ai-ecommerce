@@ -228,6 +228,12 @@ class RecommendationEngine:
 
         # Fallback if strict filter yields 0
         if not candidates:
+            if active_category:
+                return {
+                    "recommendations": [],
+                    "explanation": f"No {active_category} products met your criteria in our catalogue.",
+                    "strategy": "Empty Result"
+                }
             sorted_fallback = sorted(self.products, key=lambda x: (x["rating"], x["review_count"]), reverse=True)[:limit]
             recs = [
                 {

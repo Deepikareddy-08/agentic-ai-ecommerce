@@ -68,6 +68,30 @@ public class AiAgentClientService {
         ChatMessage userMsg = new ChatMessage(conversation, "user", request.getMessage(), null);
         chatMessageRepository.save(userMsg);
 
+        // Guard: Check for non-electronics queries (groceries, fruits, vegetables, clothing, kitchenware, etc.)
+        String nonElectronicsCategory = detectNonElectronics(request.getMessage());
+        if (nonElectronicsCategory != null) {
+            conversation.setActiveCategory(null);
+            conversation.setBudgetMax(null);
+            conversationRepository.save(conversation);
+
+            String reply = "Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in "
+                    + "verified consumer electronics, computing devices, smart home appliances, audio gear, and gadgets. "
+                    + "We do not carry " + nonElectronicsCategory + ". "
+                    + "Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!";
+
+            ChatMessage assistantMsg = new ChatMessage(conversation, "assistant", reply, null);
+            chatMessageRepository.save(assistantMsg);
+
+            ChatResponse chatResp = new ChatResponse(convId, reply, Collections.emptyList(), List.of("extract_requirements"), Collections.emptyMap());
+            chatResp.setFollowUpSuggestions(List.of(
+                    "Show top laptops under ₹70,000",
+                    "Which flagship phone has the best camera and battery?",
+                    "Show wireless noise-cancelling headphones"
+            ));
+            return chatResp;
+        }
+
         // 1. Try forwarding to Python AI Agent microservice
         try {
             String url = aiServiceUrl + "/agent/chat";
@@ -190,6 +214,29 @@ public class AiAgentClientService {
                     .filter(p -> p.getCategory().toLowerCase().contains(category.toLowerCase()) ||
                                  category.toLowerCase().contains(p.getCategory().toLowerCase()))
                     .collect(Collectors.toList());
+        } else {
+            // When no explicit category detected, strictly filter by query search tokens to prevent dumping random electronics
+            Set<String> stopWords = Set.of(
+                "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they",
+                "want", "need", "show", "find", "get", "suggest", "recommend", "best", "good",
+                "top", "looking", "please", "can", "give", "item", "items", "product", "products",
+                "under", "below", "budget", "within", "price", "for", "with", "and", "or", "in",
+                "the", "a", "an", "to", "of", "is", "at", "by", "on", "any", "some", "like", "would"
+            );
+            List<String> queryTokens = Arrays.stream(lowerUserMsg.split("[^a-zA-Z0-9]+"))
+                    .filter(t -> t.length() > 2 && !stopWords.contains(t))
+                    .collect(Collectors.toList());
+
+            if (!queryTokens.isEmpty()) {
+                candidates = candidates.stream()
+                        .filter(p -> {
+                            String pText = (p.getName() + " " + p.getCategory() + " " + p.getBrand() + " " + p.getDescription() + " " + (p.getSpecifications() != null ? p.getSpecifications() : "")).toLowerCase();
+                            return queryTokens.stream().anyMatch(pText::contains);
+                        })
+                        .collect(Collectors.toList());
+            } else {
+                candidates = Collections.emptyList();
+            }
         }
 
         if (budgetMax != null && budgetMax > 0) {
@@ -230,10 +277,14 @@ public class AiAgentClientService {
         // Grounded Natural Language Response Generation
         StringBuilder reply = new StringBuilder();
         if (topPicks.isEmpty()) {
-            reply.append("I couldn't find any products in our catalogue strictly matching ")
-                 .append(category != null ? category : "items")
-                 .append(budgetMax != null ? " under ₹" + budgetMax.intValue() : "")
-                 .append(". You might want to consider adjusting your budget or searching in related categories.");
+            reply.append("Sorry, that product is not available in our electronics catalogue. ");
+            if (category != null) {
+                reply.append("We couldn't find any ").append(category).append(" matching your criteria");
+                if (budgetMax != null) reply.append(" under ₹").append(budgetMax.intValue());
+                reply.append(". You might want to consider adjusting your budget or searching for other electronics.");
+            } else {
+                reply.append("AuraStore specializes exclusively in consumer electronics, computing devices, smart appliances, audio gear, and gadgets. How can I help you with our electronics catalogue?");
+            }
         } else {
             reply.append("Based on your requirements (");
             if (category != null) reply.append("Category: ").append(category);
@@ -359,5 +410,61 @@ public class AiAgentClientService {
 
     public List<ChatMessage> getConversationMessages(String conversationId) {
         return chatMessageRepository.findByConversationIdOrderByTimestampAsc(conversationId);
+    }
+
+    public String detectNonElectronics(String text) {
+        if (text == null || text.trim().isEmpty()) return null;
+        String t = text.toLowerCase();
+
+        // Exceptions: Genuine electronics terms
+        if (t.matches(".*\\b(electric\\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\\s*(?:dryer|styler)|airwrap)\\b.*") ||
+            t.matches(".*\\b(smart\\s*(?:watch|scale|ring|mirror|plug|tv|home))\\b.*") ||
+            t.matches(".*\\b(laptop\\s*(?:bag|sleeve|case|stand)|phone\\s*(?:case|cover|holder))\\b.*") ||
+            t.matches(".*\\b(air\\s*fryer|coffee\\s*(?:maker|machine)|espresso|blender|mixer|microwave|refrigerator|fridge|washing\\s*machine|vacuum|purifier)\\b.*")) {
+            return null;
+        }
+
+        // Groceries, Food, Vegetables, Fruits, Kitchenware, Cookware
+        if (t.matches(".*\\b(grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\\s*oil|mustard\\s*oil|sunflower\\s*oil|ghee|spices?|masala|sugar|salt|tea|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\\b.*") ||
+            t.matches(".*\\b(cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\\s*bottles?|bottles?|flasks?|lunch\\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\\s*stove|gas\\s*cylinder)\\b.*")) {
+            return "food, groceries & kitchenware";
+        }
+
+        // Clothing, Fashion, Apparel & Footwear
+        if (t.matches(".*\\b(dresses?|dresss?|clothes?|clothing|cloths?|apparels?|garments?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\\b.*")) {
+            return "clothing, fashion & footwear";
+        }
+
+        // Beauty, Skincare & Cosmetics
+        if (t.matches(".*\\b(skin\\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\\s*balms?|lip\\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\\s*cream|day\\s*cream|cold\\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\\s*oils?|hair\\s*care|body\\s*wash|soaps?|scrubs?|sheet\\s*masks?|beauty\\s*products?|kajal|blush|compact\\s*powder)\\b.*")) {
+            return "beauty & personal care";
+        }
+
+        // Furniture, Home Decor & Bedding
+        if (t.matches(".*\\b(furnitures?|sofas?|couches?|beds?|cots?|mattresses?|pillows?|blankets?|bedsheets?|curtains?|dining\\s*tables?|study\\s*tables?|coffee\\s*tables?|chairs?\\s*(?:wooden|dining|plastic)?|tables?\\s*(?:wooden|dining)?|wardrobes?|cupboards?|closets?|bookshelves?|carpets?|rugs?|mats?|cushions?)\\b.*")) {
+            return "furniture & home decor";
+        }
+
+        // Medicines & Healthcare
+        if (t.matches(".*\\b(medicines?|pharmacy|drugs?|pills?|syrups?|ointments?|antibiotics?|painkillers?|paracetamol|aspirin|vitamins?\\s*(?:tablets?|capsules?|supplements?)?|protein\\s*powders?|whey\\s*protein|bandages?|first\\s*aid|cough\\s*syrup)\\b.*")) {
+            return "medicines & healthcare";
+        }
+
+        // Books, Stationery & Toys
+        if (t.matches(".*\\b(novels?|fiction|non-fiction|textbooks?|story\\s*books?|physical\\s*books?|paperbacks?|hardcovers?|magazines?|comics?|mangas?|stationer(?:y|ies)|pens?|pencils?|erasers?|rulers?|diar(?:y|ies)|notebooks?|sticky\\s*notes?|crayons?|sketchbooks?|toys?|board\\s*games?|dolls?|action\\s*figures?|lego|puzzles?|baby\\s*wipes?|diapers?|pampers?|baby\\s*food|pet\\s*food|dog\\s*food|cat\\s*food)\\b.*")) {
+            return "books, stationery & toys";
+        }
+
+        // Sports (Non-electronic)
+        if (t.matches(".*\\b(cricket\\s*bats?|footballs?|basketballs?|badminton\\s*(?:rackets?|shuttles?)?|shuttlecocks?|tennis\\s*rackets?|dumbbells?|barbells?|weights?|gym\\s*gloves?|yoga\\s*mats?)\\b.*")) {
+            return "sports & fitness gear";
+        }
+
+        // Real Estate & Vehicles
+        if (t.matches(".*\\b(cars?\\s*(?:sale|buy|used|new)?|motorcycles?|bikes?\\s*(?:petrol|mountain|gear)?|bicycles?|scooters?\\s*(?:petrol)?|apartments?|flats?\\s*for\\s*(?:sale|rent)|houses?\\s*for\\s*(?:sale|rent)|plots?|lands?\\s*for\\s*sale|real\\s*estate)\\b.*")) {
+            return "automobiles & real estate";
+        }
+
+        return null;
     }
 }

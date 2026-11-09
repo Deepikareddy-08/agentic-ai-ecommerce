@@ -271,8 +271,8 @@ def search_products(
     cur.execute(sql, tuple(params))
     rows = cur.fetchall()
 
-    # Fallback to category & price filter if specific token combination yielded no rows
-    if not rows and query:
+    # Fallback to category & price filter if specific token combination yielded no rows (only when category or price constraint exists)
+    if not rows and query and (category or max_price or min_price):
         sql_fallback, params_fallback = build_query(use_tokens=False)
         cur.execute(sql_fallback, tuple(params_fallback))
         rows = cur.fetchall()
@@ -412,16 +412,22 @@ def get_recommendations(
     purpose: Optional[str] = None,
     required_features: Optional[List[str]] = None,
     preferred_features: Optional[List[str]] = None,
-    limit: int = 5
+    limit: int = 5,
+    query: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Call ML recommendation service for content-based candidate ranking.
     """
     # Attempt intelligent decision model first if natural language query exists
-    synth_query = f"Suggest {category or 'product'}"
-    if max_budget: synth_query += f" under ₹{max_budget:,.0f}"
-    if purpose: synth_query += f" for {purpose}"
-    if required_features: synth_query += f" with {', '.join(required_features)}"
+    if query:
+        synth_query = query
+    elif category:
+        synth_query = f"Suggest {category}"
+        if max_budget: synth_query += f" under ₹{max_budget:,.0f}"
+        if purpose: synth_query += f" for {purpose}"
+        if required_features: synth_query += f" with {', '.join(required_features)}"
+    else:
+        synth_query = "Suggest electronics"
 
     try:
         with httpx.Client(timeout=4.0) as client:

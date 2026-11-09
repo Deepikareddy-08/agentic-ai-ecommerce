@@ -372,7 +372,8 @@ class MultimodalDecisionEngine:
         budget_min = reqs.get("budget_min")
         raw_lower = reqs["raw_query"].lower()
         query_words = set(re.findall(r"[a-z0-9]+", raw_lower))
-        retrieval_words = set(w for w in query_words if len(w) > 2 and w not in {"the", "and", "for", "under", "below", "suggest", "recommend", "show", "with", "best"})
+        stop_words = {"the", "and", "for", "under", "below", "suggest", "recommend", "show", "with", "best", "want", "need", "find", "give", "like", "would", "from", "that", "this", "have", "product", "products", "item", "items"}
+        retrieval_words = set(w for w in query_words if len(w) > 2 and w not in stop_words)
 
         # Domain term expansion for semantic recall
         if any(w in query_words for w in ["anc", "noise", "cancelling", "canceling", "cancellation"]):
@@ -415,7 +416,9 @@ class MultimodalDecisionEngine:
         initial_candidates = [item[1] for item in scored_initial[:initial_candidate_limit]]
 
         if not initial_candidates:
-            initial_candidates = self.products[:initial_candidate_limit]
+            stats["initial_retrieved_count"] = 0
+            stats["surviving_candidates_count"] = 0
+            return [], stats
 
         stats["initial_retrieved_count"] = len(initial_candidates)
 

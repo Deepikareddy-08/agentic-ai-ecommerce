@@ -105,17 +105,17 @@ class AgentOrchestrator:
 
     def detect_non_electronics(self, text: str) -> Optional[str]:
         """
-        Detects if user message is asking for non-electronics (cosmetics, skin care, fashion, groceries, etc.)
+        Detects if user message is asking for non-electronics (cosmetics, skin care, fashion, groceries, kitchenware, etc.)
         Returns the non-electronics category name, or None if it's an electronics query.
         """
         t = text.lower()
 
         # Guard: Exclude queries that explicitly mention genuine electronics terms
         electronics_exceptions = [
-            r'\b(electric\s*(?:shaver|toothbrush|blanket)|hair\s*(?:dryer|styler)|airwrap)\b',
+            r'\b(electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap)\b',
             r'\b(smart\s*(?:watch|scale|ring|mirror|plug|tv|home))\b',
             r'\b(laptop\s*(?:bag|sleeve|case|stand)|phone\s*(?:case|cover|holder))\b',
-            r'\b(air\s*fryer|coffee\s*machine|espresso|blender|mixer|microwave)\b'
+            r'\b(air\s*fryer|coffee\s*(?:maker|machine)|espresso|blender|mixer|microwave|refrigerator|fridge|washing\s*machine|vacuum|purifier)\b'
         ]
         for exc in electronics_exceptions:
             if re.search(exc, t):
@@ -125,11 +125,14 @@ class AgentOrchestrator:
             # Beauty, Skincare & Cosmetics
             (r'\b(skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
 
-            # Fashion, Clothing & Footwear
-            (r'\b(clothes?|clothing|apparels?|garments?|dresses?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing & fashion'),
+            # Fashion, Clothing, Apparel & Footwear
+            (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
 
-            # Food, Groceries & Daily Consumables
-            (r'\b(grocer(?:y|ies)|foods?|snacks?|fruits?|vegetables?|veggies|apples?|bananas?|oranges?|potatoes?|tomatoes?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|coffee\s*(?:beans?|powder)?|tea\s*(?:leaves?|powder|bags?)?|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\b', 'food & groceries'),
+            # Food, Groceries, Fruits, Vegetables & Kitchenware / Cookware
+            (r'\b(grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|coffee\s*(?:beans?|powder)?|tea\s*(?:leaves?|powder|bags?)?|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\b', 'food, groceries & fruits/vegetables'),
+
+            # Manual Kitchenware, Cutlery & Non-Electric Cookware
+            (r'\b(cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\s*bottles?|bottles?|flasks?|lunch\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\s*stove|gas\s*cylinder)\b', 'kitchenware & cookware'),
 
             # Furniture, Home Decor & Bedding
             (r'\b(furnitures?|sofas?|couches?|beds?|cots?|mattresses?|pillows?|blankets?|bedsheets?|curtains?|dining\s*tables?|study\s*tables?|coffee\s*tables?|chairs?\s*(?:wooden|dining|plastic)?|tables?\s*(?:wooden|dining)?|wardrobes?|cupboards?|closets?|bookshelves?|carpets?|rugs?|mats?|cushions?)\b', 'furniture & home decor'),
@@ -142,6 +145,9 @@ class AgentOrchestrator:
 
             # Toys, Baby & Pet Supplies
             (r'\b(toys?|board\s*games?|dolls?|action\s*figures?|lego|puzzles?|baby\s*wipes?|diapers?|pampers?|baby\s*food|pet\s*food|dog\s*food|cat\s*food|pedigree|whiskas?)\b', 'toys & pet supplies'),
+
+            # Sports & Fitness Gear (Non-Electronic)
+            (r'\b(cricket\s*bats?|footballs?|basketballs?|badminton\s*(?:rackets?|shuttles?)?|shuttlecocks?|tennis\s*rackets?|dumbbells?|barbells?|weights?|gym\s*gloves?|yoga\s*mats?)\b', 'sports & fitness gear'),
 
             # Vehicles & Real Estate
             (r'\b(cars?\s*(?:sale|buy|used|new)?|motorcycles?|bikes?\s*(?:petrol|mountain|gear)?|bicycles?|scooters?\s*(?:petrol)?|apartments?|flats?\s*for\s*(?:sale|rent)|houses?\s*for\s*(?:sale|rent)|plots?|lands?\s*for\s*sale|real\s*estate)\b', 'automobiles & real estate')
@@ -651,11 +657,12 @@ class AgentOrchestrator:
         reqs = self.extract_requirements(user_message, session)
 
         if reqs.get("is_non_electronics"):
+            non_type = reqs.get("non_electronics_type", "non-electronic items")
             reply = (
-                "Sorry, this catalogue is for electronics only. We specialize in verified smart "
-                "consumer electronics such as smartphones, laptops, audio & headphones, smart TVs, "
-                "smartwatches, tablets, and smart accessories. "
-                "How can I help you with our electronics catalogue?"
+                f"Sorry, that product is not available in our catalogue. AuraStore specializes exclusively "
+                f"in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. "
+                f"We do not carry {non_type}. "
+                f"How can I help you with our electronics catalogue?"
             )
             session["history"].append({"role": "user", "content": user_message})
             session["history"].append({"role": "assistant", "content": reply})
@@ -864,7 +871,9 @@ class AgentOrchestrator:
 
             preferred_features=session.get("preferred_features"),
 
-            limit=3
+            limit=3,
+
+            query=user_message
 
         )
 
@@ -983,7 +992,12 @@ class AgentOrchestrator:
         if not recommendations:
             cat_desc = reqs.get("category")
             if not cat_desc:
-                return "Sorry, this catalogue is for electronics only. We specialize in verified smart consumer electronics such as smartphones, laptops, audio & headphones, smart TVs, smartwatches, tablets, and smart accessories. How can I help you with our electronics catalogue?"
+                return (
+                    "Sorry, that product is not available in our electronics catalogue. "
+                    "AuraStore specializes exclusively in verified smart consumer electronics such as "
+                    "smartphones, laptops, audio & headphones, smart TVs, smartwatches, tablets, and smart accessories. "
+                    "How can I help you with our electronics catalogue?"
+                )
 
             return (
                 f"Sorry, there are no {cat_desc.lower()} available in our catalogue matching "
@@ -1193,11 +1207,12 @@ class AgentOrchestrator:
         """
 
         if reqs.get("is_non_electronics"):
+            non_type = reqs.get("non_electronics_type", "non-electronic items")
             reply = (
-                "Sorry, this catalogue is for electronics only. We specialize in verified smart "
-                "consumer electronics such as smartphones, laptops, audio & headphones, smart TVs, "
-                "smartwatches, tablets, and smart accessories. "
-                "How can I help you with our electronics catalogue?"
+                f"Sorry, that product is not available in our catalogue. AuraStore specializes exclusively "
+                f"in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. "
+                f"We do not carry {non_type}. "
+                f"How can I help you with our electronics catalogue?"
             )
             session["history"].append({"role": "assistant", "content": reply})
             session["discussed_product_ids"] = []
