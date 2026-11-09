@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+numpy
+pandas
+scikit-learn
+requests
+pydantic
+psycopg2-binary
+sentence-transformers
+torch
+qdrant-client
+groq
+openai
