@@ -59,6 +59,11 @@ public class AiAgentClientServiceTest {
 
         // Follow up on active category
         assertTrue(aiService.isElectronicsQuery("which is better under 50000", "Laptops"));
+        assertTrue(aiService.isElectronicsQuery("explain why", "Laptops"));
+        assertTrue(aiService.isElectronicsQuery("explain why", null));
+        assertTrue(aiService.isElectronicsQuery("can you explain about apple macbook why is it best", null));
+        assertTrue(aiService.isElectronicsQuery("why is it important", "Laptops"));
+        assertTrue(aiService.isElectronicsQuery("why is it best", null));
 
         // Non-electronics / Out-of-domain queries
         assertFalse(aiService.isElectronicsQuery("is there any sun screenns", null));
@@ -80,6 +85,8 @@ public class AiAgentClientServiceTest {
         assertNull(aiService.detectNonElectronics("smart tv 55 inch 4k"));
         assertNull(aiService.detectNonElectronics("smartwatch with heart rate monitor"));
         assertNull(aiService.detectNonElectronics("MacBook Air M2 vs ThinkPad E14"));
+        assertNull(aiService.detectNonElectronics("can you explain about apple macbook why is it best"));
+        assertNull(aiService.detectNonElectronics("apple macbook pro 14 m3 pro"));
     }
 
     @Test
