@@ -92,6 +92,48 @@ public class AiAgentClientService {
             return chatResp;
         }
 
+        // Guard: Check for greetings and small-talk
+        if (isGreeting(request.getMessage())) {
+            String reply = "Hello! I am your AuraStore AI Shopping Advisor. I can help you find, compare, "
+                    + "and recommend smartphones, laptops, audio gear, smart TVs, smartwatches, and smart home appliances. "
+                    + "What kind of electronics are you looking for today?";
+
+            ChatMessage assistantMsg = new ChatMessage(conversation, "assistant", reply, null);
+            chatMessageRepository.save(assistantMsg);
+
+            ChatResponse chatResp = new ChatResponse(convId, reply, Collections.emptyList(), List.of("extract_requirements"), Collections.emptyMap());
+            chatResp.setFollowUpSuggestions(List.of(
+                    "Show top laptops under ₹70,000",
+                    "Which flagship phone has the best camera and battery?",
+                    "Show wireless noise-cancelling headphones"
+            ));
+            return chatResp;
+        }
+
+        // Guard: Check for general knowledge, people/identity, or non-shopping questions (e.g. "who is yaswanth")
+        String generalQueryType = detectGeneralOrNonShoppingQuery(request.getMessage());
+        if (generalQueryType != null) {
+            conversation.setActiveCategory(null);
+            conversation.setBudgetMax(null);
+            conversationRepository.save(conversation);
+
+            String reply = "Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively "
+                    + "to assist with exploring, comparing, and recommending consumer electronics, computing devices, "
+                    + "smart appliances, audio gear, and gadgets at AuraStore. I cannot answer questions like \""
+                    + request.getMessage().trim() + "\". How can I help you with our electronics catalogue?";
+
+            ChatMessage assistantMsg = new ChatMessage(conversation, "assistant", reply, null);
+            chatMessageRepository.save(assistantMsg);
+
+            ChatResponse chatResp = new ChatResponse(convId, reply, Collections.emptyList(), List.of("extract_requirements"), Collections.emptyMap());
+            chatResp.setFollowUpSuggestions(List.of(
+                    "Show top laptops under ₹70,000",
+                    "Which flagship phone has the best camera and battery?",
+                    "Show wireless noise-cancelling headphones"
+            ));
+            return chatResp;
+        }
+
         // 1. Try forwarding to Python AI Agent microservice
         try {
             String url = aiServiceUrl + "/agent/chat";
@@ -221,7 +263,9 @@ public class AiAgentClientService {
                 "want", "need", "show", "find", "get", "suggest", "recommend", "best", "good",
                 "top", "looking", "please", "can", "give", "item", "items", "product", "products",
                 "under", "below", "budget", "within", "price", "for", "with", "and", "or", "in",
-                "the", "a", "an", "to", "of", "is", "at", "by", "on", "any", "some", "like", "would"
+                "the", "a", "an", "to", "of", "is", "at", "by", "on", "any", "some", "like", "would",
+                "who", "whom", "whose", "what", "where", "when", "why", "how", "which", "are",
+                "was", "were", "tell", "explain", "about", "does", "did", "do", "name"
             );
             List<String> queryTokens = Arrays.stream(lowerUserMsg.split("[^a-zA-Z0-9]+"))
                     .filter(t -> t.length() > 2 && !stopWords.contains(t))
@@ -463,6 +507,40 @@ public class AiAgentClientService {
         // Real Estate & Vehicles
         if (t.matches(".*\\b(cars?\\s*(?:sale|buy|used|new)?|motorcycles?|bikes?\\s*(?:petrol|mountain|gear)?|bicycles?|scooters?\\s*(?:petrol)?|apartments?|flats?\\s*for\\s*(?:sale|rent)|houses?\\s*for\\s*(?:sale|rent)|plots?|lands?\\s*for\\s*sale|real\\s*estate)\\b.*")) {
             return "automobiles & real estate";
+        }
+
+        return null;
+    }
+
+    public boolean isGreeting(String text) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String t = text.toLowerCase().trim();
+        return t.matches("^(hi|hello|hey|good\\s+(morning|afternoon|evening)|greetings|howdy|sup)[!.]?$");
+    }
+
+    public String detectGeneralOrNonShoppingQuery(String text) {
+        if (text == null || text.trim().isEmpty()) return null;
+        String t = text.toLowerCase().trim();
+
+        // 1. "Who is / Who was / Who are / Who created" questions (e.g. "who is yaswanth", "who is elon musk")
+        if (t.matches(".*\\bwho\\s+(is|was|are|were|created|made|built|owns)\\b.*") ||
+            t.matches(".*\\bwho\\s+are\\s+you\\b.*") ||
+            t.matches(".*\\bwhat\\s+is\\s+your\\s+name\\b.*") ||
+            t.matches(".*\\bwhat\\s+can\\s+you\\s+do\\b.*")) {
+            return "personal or identity questions";
+        }
+
+        // 2. General knowledge "What is / Where is / Why is / How to" non-shopping questions
+        if (t.matches(".*\\bwhat\\s+(is|was|are|were)\\s+(the\\s+)?(capital|weather|meaning|time|date|age|gravity|photosynthesis|population|distance|president|prime\\s*minister)\\b.*") ||
+            t.matches(".*\\bwhere\\s+(is|are|was|were)\\s+(the\\s+)?(located|situated|hyderabad|india|delhi|mumbai|paris|london|usa|america)\\b.*") ||
+            t.matches(".*\\bwhy\\s+(is|are|do|does|did)\\s+(the\\s+)?(sky|ocean|earth|moon|sun|we|people|birds)\\b.*") ||
+            t.matches(".*\\bhow\\s+to\\s+(cook|make\\s+pasta|bake|drive|study|lose\\s+weight|sleep)\\b.*")) {
+            return "general knowledge or trivia questions";
+        }
+
+        // 3. Creative / Tasks (jokes, poems, stories)
+        if (t.matches(".*\\b(tell\\s+me\\s+a\\s+(joke|story|riddle)|write\\s+a\\s+(poem|essay|song|code|script)|sing\\s+a\\s+song)\\b.*")) {
+            return "creative or general task requests";
         }
 
         return null;

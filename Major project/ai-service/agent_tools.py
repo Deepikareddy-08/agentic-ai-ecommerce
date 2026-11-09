@@ -211,7 +211,9 @@ def search_products(
         "and", "or", "in", "the", "a", "an", "to", "of", "is", "it", "at", "by", "on",
         "i", "me", "my", "need", "want", "show", "find", "get", "suggest", "recommend",
         "best", "good", "top", "looking", "please", "can", "you", "give", "laptop", "laptops",
-        "phone", "phones", "smartphone", "smartphones", "watch", "watches", "product", "products"
+        "phone", "phones", "smartphone", "smartphones", "watch", "watches", "product", "products",
+        "who", "whom", "whose", "what", "where", "when", "why", "how", "which", "are", "was",
+        "were", "tell", "explain", "about", "does", "did", "do", "name", "say", "hello", "hi", "hey"
     }
 
     conn = get_db_connection()
@@ -231,6 +233,8 @@ def search_products(
                     pat = f"%{tok}%"
                     params.extend([pat, pat, pat, pat])
                 sql += " AND (" + " OR ".join(token_clauses) + ")"
+            elif not category:
+                sql += " AND 1=0"
 
         norm_cat = normalize_category(category)
         if norm_cat:

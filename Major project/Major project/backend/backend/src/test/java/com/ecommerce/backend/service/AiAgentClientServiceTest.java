@@ -50,5 +50,29 @@ public class AiAgentClientServiceTest {
         assertNull(aiService.detectNonElectronics("smartwatch with heart rate monitor"));
         assertNull(aiService.detectNonElectronics("MacBook Air M2 vs ThinkPad E14"));
     }
+
+    @Test
+    public void testDetectGeneralOrNonShoppingQuery_WhoIsQuestions() {
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("who is yaswanth"));
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("who is elon musk"));
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("who are you"));
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("what is your name"));
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("what is the capital of india"));
+        assertNotNull(aiService.detectGeneralOrNonShoppingQuery("tell me a joke"));
+
+        // Genuine electronic questions should NOT be flagged
+        assertNull(aiService.detectGeneralOrNonShoppingQuery("i need a laptop for coding"));
+        assertNull(aiService.detectGeneralOrNonShoppingQuery("best smartphone under 30000"));
+    }
+
+    @Test
+    public void testIsGreeting() {
+        assertTrue(aiService.isGreeting("hi"));
+        assertTrue(aiService.isGreeting("hello"));
+        assertTrue(aiService.isGreeting("hey"));
+        assertTrue(aiService.isGreeting("good morning"));
+
+        assertFalse(aiService.isGreeting("i want a laptop"));
+    }
 }
 

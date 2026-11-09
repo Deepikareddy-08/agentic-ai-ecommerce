@@ -263,6 +263,54 @@ class MultimodalDecisionEngine:
                 return cat_name
         return None
 
+    def is_greeting(self, text: str) -> bool:
+        if not text or not text.strip():
+            return False
+        t = text.lower().strip()
+        return bool(re.match(r'^(hi|hello|hey|good\s+(?:morning|afternoon|evening)|greetings|howdy|sup)[!.]*$', t))
+
+    def detect_general_query(self, text: str) -> Optional[str]:
+        if not text or not text.strip():
+            return None
+        t = text.lower().strip()
+
+        # Guard: If user explicitly mentions electronics hardware/gadgets, let it through
+        electronics_exceptions = [
+            r'\b(laptop|macbook|thinkpad|computer|notebook|pc|desktop)\b',
+            r'\b(phone|smartphone|mobile|iphone|galaxy|pixel|oneplus|handset)\b',
+            r'\b(audio|headphone|earphone|earbud|airpod|speaker|soundbar|tws|bluetooth)\b',
+            r'\b(tv|television|oled|qled|monitor|display|projector)\b',
+            r'\b(watch|smartwatch|band|ring|fitness\s*tracker)\b',
+            r'\b(camera|drone|console|ps5|xbox|kindle|printer|vacuum)\b'
+        ]
+        for exc in electronics_exceptions:
+            if re.search(exc, t):
+                return None
+
+        # 1. "Who is / Who was / Who are / Who created" questions (e.g. "who is yaswanth", "who is elon musk")
+        if (
+            re.search(r'\bwho\s+(?:is|was|are|were|created|made|built|owns)\b', t) or
+            re.search(r'\bwho\s+are\s+you\b', t) or
+            re.search(r'\bwhat\s+is\s+your\s+name\b', t) or
+            re.search(r'\bwhat\s+can\s+you\s+do\b', t)
+        ):
+            return "personal or identity questions"
+
+        # 2. General knowledge "What is / Where is / Why is / How to" non-shopping questions
+        if (
+            re.search(r'\bwhat\s+(?:is|was|are|were)\s+(?:the\s+)?(?:capital|weather|meaning|time|date|age|gravity|photosynthesis|population|distance|president|prime\s*minister)\b', t) or
+            re.search(r'\bwhere\s+(?:is|are|was|were)\s+(?:the\s+)?(?:located|situated|hyderabad|india|delhi|mumbai|paris|london|usa|america)\b', t) or
+            re.search(r'\bwhy\s+(?:is|are|do|does|did)\s+(?:the\s+)?(?:sky|ocean|earth|moon|sun|we|people|birds)\b', t) or
+            re.search(r'\bhow\s+to\s+(?:cook|make\s+pasta|bake|drive|study|lose\s+weight|sleep)\b', t)
+        ):
+            return "general knowledge or trivia questions"
+
+        # 3. Creative / Tasks (jokes, poems, stories, homework)
+        if re.search(r'\b(?:tell\s+me\s+a\s+(?:joke|story|riddle)|write\s+a\s+(?:poem|essay|song|code|script)|sing\s+a\s+song)\b', t):
+            return "creative or general task requests"
+
+        return None
+
     def parse_query(self, query: str) -> Dict[str, Any]:
         """
         Step 1: Natural Language Query Understanding (NLU).
@@ -279,14 +327,27 @@ class MultimodalDecisionEngine:
             "preferred_features": [],
             "negative_keywords": [],
             "intent": "recommendation",
+            "is_greeting": False,
+            "is_general_query": False,
+            "general_query_type": None,
             "is_non_electronics": False,
             "non_electronics_type": None
         }
+
+        if self.is_greeting(query):
+            reqs["is_greeting"] = True
+            return reqs
 
         non_elec = self.detect_non_electronics(query)
         if non_elec:
             reqs["is_non_electronics"] = True
             reqs["non_electronics_type"] = non_elec
+            return reqs
+
+        gen_type = self.detect_general_query(query)
+        if gen_type:
+            reqs["is_general_query"] = True
+            reqs["general_query_type"] = gen_type
             return reqs
 
         tokens = set(re.findall(r"[a-z0-9]+", text))
@@ -409,7 +470,13 @@ class MultimodalDecisionEngine:
         budget_min = reqs.get("budget_min")
         raw_lower = reqs["raw_query"].lower()
         query_words = set(re.findall(r"[a-z0-9]+", raw_lower))
-        stop_words = {"the", "and", "for", "under", "below", "suggest", "recommend", "show", "with", "best", "want", "need", "find", "give", "like", "would", "from", "that", "this", "have", "product", "products", "item", "items"}
+        stop_words = {
+            "the", "and", "for", "under", "below", "suggest", "recommend", "show", "with", "best",
+            "want", "need", "find", "give", "like", "would", "from", "that", "this", "have",
+            "product", "products", "item", "items", "who", "whom", "whose", "what", "where",
+            "when", "why", "how", "which", "are", "was", "were", "tell", "explain", "about",
+            "does", "did", "do", "name", "you", "your", "can", "is", "a", "an", "to", "in", "of"
+        }
         retrieval_words = set(w for w in query_words if len(w) > 2 and w not in stop_words)
 
         # Domain term expansion for semantic recall
@@ -425,7 +492,9 @@ class MultimodalDecisionEngine:
         scored_initial = []
         for p in self.products:
             p_text = f"{p['name']} {p['category']} {p['brand']} {p['description']} {p.get('specifications','')}".lower()
-            word_match_score = sum(3.0 if w in p['name'].lower() else 1.0 for w in retrieval_words if w in p_text)
+            p_tokens = set(re.findall(r"[a-z0-9]+", p_text))
+            p_name_tokens = set(re.findall(r"[a-z0-9]+", p['name'].lower()))
+            word_match_score = sum(3.0 if w in p_name_tokens else 1.0 for w in retrieval_words if w in p_tokens)
             
             # If user had specific search words, require at least ONE keyword match or a category match
             if retrieval_words and not target_category and word_match_score <= 0:
@@ -711,6 +780,43 @@ class MultimodalDecisionEngine:
         """
         # Step 1: NLU
         reqs = self.parse_query(query)
+
+        if reqs.get("is_greeting"):
+            return {
+                "query": query,
+                "parsed_requirements": reqs,
+                "filtering_statistics": {
+                    "initial_retrieved_count": 0,
+                    "pruned_accessories_count": 0,
+                    "pruned_over_budget_count": 0,
+                    "pruned_under_budget_count": 0,
+                    "surviving_candidates_count": 0,
+                    "target_candidate_limit": target_candidate_limit
+                },
+                "pipeline_summary": "Greeting detected. No product filtering needed.",
+                "total_qualified": 0,
+                "recommendations": [],
+                "explanation": "Hello! I am your AuraStore AI Shopping Advisor. How can I help you find consumer electronics today?"
+            }
+
+        if reqs.get("is_general_query"):
+            gen_type = reqs.get("general_query_type", "general questions")
+            return {
+                "query": query,
+                "parsed_requirements": reqs,
+                "filtering_statistics": {
+                    "initial_retrieved_count": 0,
+                    "pruned_accessories_count": 0,
+                    "pruned_over_budget_count": 0,
+                    "pruned_under_budget_count": 0,
+                    "surviving_candidates_count": 0,
+                    "target_candidate_limit": target_candidate_limit
+                },
+                "pipeline_summary": f"Query identified as {gen_type}. Zero candidates qualified.",
+                "total_qualified": 0,
+                "recommendations": [],
+                "explanation": f"Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively for electronics at AuraStore. I cannot answer questions like \"{query.strip()}\"."
+            }
 
         if reqs.get("is_non_electronics"):
             non_type = reqs.get("non_electronics_type", "non-electronic items")

@@ -62,7 +62,70 @@ const detectNonElectronicsClient = (text) => {
   return null;
 };
 
+const isGreetingClient = (text) => {
+  if (!text) return false;
+  return /^(hi|hello|hey|good\s+(morning|afternoon|evening)|greetings|howdy|sup)[!.]*$/i.test(text.trim());
+};
+
+const detectGeneralQueryClient = (text) => {
+  if (!text) return null;
+  const t = text.toLowerCase().trim();
+
+  // Guard: electronics keywords
+  if (
+    /laptop|macbook|thinkpad|computer|notebook|pc|desktop|phone|smartphone|mobile|iphone|galaxy|pixel|oneplus|handset|audio|headphone|earphone|earbud|airpod|speaker|soundbar|tws|bluetooth|tv|television|oled|qled|monitor|display|projector|watch|smartwatch|band|ring|camera|drone|console|ps5|xbox|kindle|printer|vacuum/i.test(t)
+  ) {
+    return null;
+  }
+
+  // 1. Who is / Who was / Who created
+  if (
+    /\bwho\s+(is|was|are|were|created|made|built|owns)\b/i.test(t) ||
+    /\bwho\s+are\s+you\b/i.test(t) ||
+    /\bwhat\s+is\s+your\s+name\b/i.test(t) ||
+    /\bwhat\s+can\s+you\s+do\b/i.test(t)
+  ) {
+    return 'personal or identity questions';
+  }
+
+  // 2. General knowledge
+  if (
+    /\bwhat\s+(is|was|are|were)\s+(the\s+)?(capital|weather|meaning|time|date|age|gravity|photosynthesis|population|distance|president|prime\s*minister)\b/i.test(t) ||
+    /\bwhere\s+(is|are|was|were)\s+(the\s+)?(located|situated|hyderabad|india|delhi|mumbai|paris|london|usa|america)\b/i.test(t) ||
+    /\bwhy\s+(is|are|do|does|did)\s+(the\s+)?(sky|ocean|earth|moon|sun|we|people|birds)\b/i.test(t) ||
+    /\bhow\s+to\s+(cook|make\s+pasta|bake|drive|study|lose\s+weight|sleep)\b/i.test(t)
+  ) {
+    return 'general knowledge or trivia questions';
+  }
+
+  // 3. Creative / Tasks
+  if (/\b(tell\s+me\s+a\s+(joke|story|riddle)|write\s+a\s+(poem|essay|song|code|script)|sing\s+a\s+song)\b/i.test(t)) {
+    return 'creative or general task requests';
+  }
+
+  return null;
+};
+
 const generateClientSideAgentResponse = (query, catalogProducts = []) => {
+  if (isGreetingClient(query)) {
+    return {
+      conversationId: `client-session-${Date.now()}`,
+      response: "Hello! I am your AuraStore AI Shopping Advisor. I can help you find, compare, and recommend smartphones, laptops, audio gear, smart TVs, smartwatches, and smart home appliances. What kind of electronics are you looking for today?",
+      recommendedProducts: [],
+      toolsUsed: ['extract_requirements']
+    };
+  }
+
+  const generalType = detectGeneralQueryClient(query);
+  if (generalType) {
+    return {
+      conversationId: `client-session-${Date.now()}`,
+      response: `Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively to assist with exploring, comparing, and recommending consumer electronics, computing devices, smart appliances, audio gear, and gadgets at AuraStore. I cannot answer questions like "${query.trim()}". How can I help you with our electronics catalogue?`,
+      recommendedProducts: [],
+      toolsUsed: ['extract_requirements']
+    };
+  }
+
   const nonElec = detectNonElectronicsClient(query);
   if (nonElec) {
     return {

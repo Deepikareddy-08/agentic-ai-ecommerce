@@ -159,6 +159,54 @@ class AgentOrchestrator:
 
         return None
 
+    def is_greeting(self, text: str) -> bool:
+        if not text or not text.strip():
+            return False
+        t = text.lower().strip()
+        return bool(re.match(r'^(hi|hello|hey|good\s+(?:morning|afternoon|evening)|greetings|howdy|sup)[!.]*$', t))
+
+    def detect_general_query(self, text: str) -> Optional[str]:
+        if not text or not text.strip():
+            return None
+        t = text.lower().strip()
+
+        # Guard: If user explicitly mentions electronics hardware/gadgets, let it through
+        electronics_exceptions = [
+            r'\b(laptop|macbook|thinkpad|computer|notebook|pc|desktop)\b',
+            r'\b(phone|smartphone|mobile|iphone|galaxy|pixel|oneplus|handset)\b',
+            r'\b(audio|headphone|earphone|earbud|airpod|speaker|soundbar|tws|bluetooth)\b',
+            r'\b(tv|television|oled|qled|monitor|display|projector)\b',
+            r'\b(watch|smartwatch|band|ring|fitness\s*tracker)\b',
+            r'\b(camera|drone|console|ps5|xbox|kindle|printer|vacuum)\b'
+        ]
+        for exc in electronics_exceptions:
+            if re.search(exc, t):
+                return None
+
+        # 1. "Who is / Who was / Who are / Who created" questions (e.g. "who is yaswanth", "who is elon musk")
+        if (
+            re.search(r'\bwho\s+(?:is|was|are|were|created|made|built|owns)\b', t) or
+            re.search(r'\bwho\s+are\s+you\b', t) or
+            re.search(r'\bwhat\s+is\s+your\s+name\b', t) or
+            re.search(r'\bwhat\s+can\s+you\s+do\b', t)
+        ):
+            return "personal or identity questions"
+
+        # 2. General knowledge "What is / Where is / Why is / How to" non-shopping questions
+        if (
+            re.search(r'\bwhat\s+(?:is|was|are|were)\s+(?:the\s+)?(?:capital|weather|meaning|time|date|age|gravity|photosynthesis|population|distance|president|prime\s*minister)\b', t) or
+            re.search(r'\bwhere\s+(?:is|are|was|were)\s+(?:the\s+)?(?:located|situated|hyderabad|india|delhi|mumbai|paris|london|usa|america)\b', t) or
+            re.search(r'\bwhy\s+(?:is|are|do|does|did)\s+(?:the\s+)?(?:sky|ocean|earth|moon|sun|we|people|birds)\b', t) or
+            re.search(r'\bhow\s+to\s+(?:cook|make\s+pasta|bake|drive|study|lose\s+weight|sleep)\b', t)
+        ):
+            return "general knowledge or trivia questions"
+
+        # 3. Creative / Tasks (jokes, poems, stories, homework)
+        if re.search(r'\b(?:tell\s+me\s+a\s+(?:joke|story|riddle)|write\s+a\s+(?:poem|essay|song|code|script)|sing\s+a\s+song)\b', t):
+            return "creative or general task requests"
+
+        return None
+
     def extract_requirements(self, message: str, session: Dict[str, Any]) -> Dict[str, Any]:
 
         """
@@ -171,7 +219,19 @@ class AgentOrchestrator:
 
         text = message.lower()
 
-
+        # Guard: Check for small talk and greetings
+        if self.is_greeting(text):
+            return {
+                "is_greeting": True,
+                "is_general_query": False,
+                "is_non_electronics": False,
+                "category": None,
+                "budget_max": None,
+                "purpose": None,
+                "required_features": [],
+                "preferred_features": [],
+                "requested_count": None
+            }
 
         # 1. Primary Device Categories (High Priority - Always evaluate primary device before component specs)
 
@@ -293,8 +353,32 @@ class AgentOrchestrator:
             session["required_features"] = []
             session["preferred_features"] = []
             return {
+                "is_greeting": False,
+                "is_general_query": False,
                 "is_non_electronics": True,
                 "non_electronics_type": non_elec_type,
+                "category": None,
+                "budget_max": None,
+                "purpose": None,
+                "required_features": [],
+                "preferred_features": [],
+                "requested_count": None
+            }
+
+        # Check if user query is a general knowledge / who-is / creative request
+        gen_query_type = self.detect_general_query(text)
+        if gen_query_type and not detected_category:
+            session["active_category"] = None
+            session["budget_max"] = None
+            session["purpose"] = None
+            session["discussed_product_ids"] = []
+            session["required_features"] = []
+            session["preferred_features"] = []
+            return {
+                "is_greeting": False,
+                "is_general_query": True,
+                "general_query_type": gen_query_type,
+                "is_non_electronics": False,
                 "category": None,
                 "budget_max": None,
                 "purpose": None,
@@ -655,6 +739,45 @@ class AgentOrchestrator:
         # Step 1: Extract requirements
 
         reqs = self.extract_requirements(user_message, session)
+
+        if reqs.get("is_greeting"):
+            reply = (
+                "Hello! I am your AuraStore AI Shopping Advisor. I can help you find, compare, "
+                "and recommend smartphones, laptops, audio gear, smart TVs, smartwatches, and smart home appliances. "
+                "What kind of electronics are you looking for today?"
+            )
+            session["history"].append({"role": "user", "content": user_message})
+            session["history"].append({"role": "assistant", "content": reply})
+            return {
+                "conversation_id": conversation_id,
+                "response": reply,
+                "product_ids": [],
+                "recommended_products": [],
+                "recommendedProducts": [],
+                "tools_used": ["extract_requirements"],
+                "extracted_requirements": reqs
+            }
+
+        if reqs.get("is_general_query"):
+            reply = (
+                f"Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively "
+                f"to assist with exploring, comparing, and recommending consumer electronics, computing devices, "
+                f"smart appliances, audio gear, and gadgets at AuraStore. I cannot answer questions like \"{user_message.strip()}\". "
+                f"How can I help you with our electronics catalogue?"
+            )
+            session["history"].append({"role": "user", "content": user_message})
+            session["history"].append({"role": "assistant", "content": reply})
+            session["discussed_product_ids"] = []
+            return {
+                "conversation_id": conversation_id,
+                "response": reply,
+                "product_ids": [],
+                "recommended_products": [],
+                "recommendedProducts": [],
+                "tools_used": ["extract_requirements"],
+                "extracted_requirements": reqs
+            }
+
 
         if reqs.get("is_non_electronics"):
             non_type = reqs.get("non_electronics_type", "non-electronic items")
@@ -1205,6 +1328,42 @@ class AgentOrchestrator:
         4. Precise product card alignment
 
         """
+
+        if reqs.get("is_greeting"):
+            reply = (
+                "Hello! I am your AuraStore AI Shopping Advisor. I can help you find, compare, "
+                "and recommend smartphones, laptops, audio gear, smart TVs, smartwatches, and smart home appliances. "
+                "What kind of electronics are you looking for today?"
+            )
+            session["history"].append({"role": "assistant", "content": reply})
+            return {
+                "conversation_id": conversation_id,
+                "response": reply,
+                "product_ids": [],
+                "recommended_products": [],
+                "recommendedProducts": [],
+                "tools_used": ["extract_requirements"],
+                "extracted_requirements": reqs
+            }
+
+        if reqs.get("is_general_query"):
+            reply = (
+                f"Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively "
+                f"to assist with exploring, comparing, and recommending consumer electronics, computing devices, "
+                f"smart appliances, audio gear, and gadgets at AuraStore. I cannot answer questions like \"{message.strip()}\". "
+                f"How can I help you with our electronics catalogue?"
+            )
+            session["history"].append({"role": "assistant", "content": reply})
+            session["discussed_product_ids"] = []
+            return {
+                "conversation_id": conversation_id,
+                "response": reply,
+                "product_ids": [],
+                "recommended_products": [],
+                "recommendedProducts": [],
+                "tools_used": ["extract_requirements"],
+                "extracted_requirements": reqs
+            }
 
         if reqs.get("is_non_electronics"):
             non_type = reqs.get("non_electronics_type", "non-electronic items")
