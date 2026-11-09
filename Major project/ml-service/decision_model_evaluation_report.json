@@ -1,0 +1,227 @@
+{
+  "status": "COMPLETED",
+  "benchmark_timestamp": "2026-11-06 00:58:57",
+  "catalog_size": 276,
+  "test_query_count": 6,
+  "aggregate_metrics": {
+    "p@1": {
+      "baseline": 0.5,
+      "decision_model": 1.0,
+      "lift": "+100.0%"
+    },
+    "r@1": {
+      "baseline": 0.0988,
+      "decision_model": 0.1673,
+      "lift": "+69.3%"
+    },
+    "ndcg@1": {
+      "baseline": 0.4048,
+      "decision_model": 1.0,
+      "lift": "+147.1%"
+    },
+    "p@3": {
+      "baseline": 0.4444,
+      "decision_model": 1.0,
+      "lift": "+125.0%"
+    },
+    "r@3": {
+      "baseline": 0.2214,
+      "decision_model": 0.5018,
+      "lift": "+126.6%"
+    },
+    "ndcg@3": {
+      "baseline": 0.3895,
+      "decision_model": 0.9777,
+      "lift": "+151.0%"
+    },
+    "p@5": {
+      "baseline": 0.3333,
+      "decision_model": 0.9667,
+      "lift": "+190.0%"
+    },
+    "r@5": {
+      "baseline": 0.2839,
+      "decision_model": 0.7946,
+      "lift": "+179.9%"
+    },
+    "ndcg@5": {
+      "baseline": 0.3526,
+      "decision_model": 0.9397,
+      "lift": "+166.5%"
+    }
+  },
+  "average_latency_ms": {
+    "baseline": 0.83,
+    "decision_model": 12.64
+  },
+  "query_evaluations": [
+    {
+      "query": "Suggest a laptop under \u20b960,000 for programming",
+      "baseline_top_3": [
+        118,
+        2504,
+        2506
+      ],
+      "decision_model_top_3": [
+        101,
+        104,
+        112
+      ],
+      "baseline_latency_ms": 0.53,
+      "decision_model_latency_ms": 18.4,
+      "pipeline_summary": "Filtered initial 60 candidates to 10 qualified options. Pruned 0 accessories and 17 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.333,
+          "r@3": 0.143,
+          "ndcg@3": 0.127
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.429,
+          "ndcg@3": 1.0
+        }
+      }
+    },
+    {
+      "query": "Best laptop for software development and coding under \u20b975,000",
+      "baseline_top_3": [
+        103,
+        118,
+        2504
+      ],
+      "decision_model_top_3": [
+        101,
+        104,
+        2517
+      ],
+      "baseline_latency_ms": 0.91,
+      "decision_model_latency_ms": 12.32,
+      "pipeline_summary": "Filtered initial 60 candidates to 12 qualified options. Pruned 0 accessories and 14 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.333,
+          "r@3": 0.143,
+          "ndcg@3": 0.201
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.429,
+          "ndcg@3": 1.0
+        }
+      }
+    },
+    {
+      "query": "High-end active noise cancelling headphones under \u20b930,000 for travel and music",
+      "baseline_top_3": [
+        323,
+        2546,
+        2547
+      ],
+      "decision_model_top_3": [
+        301,
+        2546,
+        310
+      ],
+      "baseline_latency_ms": 1.12,
+      "decision_model_latency_ms": 13.0,
+      "pipeline_summary": "Filtered initial 60 candidates to 29 qualified options. Pruned 0 accessories and 3 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.667,
+          "r@3": 0.25,
+          "ndcg@3": 0.531
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.375,
+          "ndcg@3": 1.0
+        }
+      }
+    },
+    {
+      "query": "Flagship camera smartphone with great battery under \u20b945,000",
+      "baseline_top_3": [
+        217,
+        226,
+        205
+      ],
+      "decision_model_top_3": [
+        201,
+        227,
+        204
+      ],
+      "baseline_latency_ms": 0.88,
+      "decision_model_latency_ms": 11.05,
+      "pipeline_summary": "Filtered initial 60 candidates to 17 qualified options. Pruned 0 accessories and 18 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.333,
+          "r@3": 0.143,
+          "ndcg@3": 0.235
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.429,
+          "ndcg@3": 0.866
+        }
+      }
+    },
+    {
+      "query": "Waterproof laptop sleeve case or cover under \u20b92,000",
+      "baseline_top_3": [
+        401,
+        1903,
+        1802
+      ],
+      "decision_model_top_3": [
+        401,
+        404,
+        413
+      ],
+      "baseline_latency_ms": 0.71,
+      "decision_model_latency_ms": 11.01,
+      "pipeline_summary": "Filtered initial 50 candidates to 7 qualified options. Pruned 0 accessories and 39 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.333,
+          "r@3": 0.25,
+          "ndcg@3": 0.674
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.75,
+          "ndcg@3": 1.0
+        }
+      }
+    },
+    {
+      "query": "4K Smart TV with Google TV and Dolby Vision under \u20b950,000",
+      "baseline_top_3": [
+        804,
+        801,
+        806
+      ],
+      "decision_model_top_3": [
+        804,
+        805,
+        810
+      ],
+      "baseline_latency_ms": 0.84,
+      "decision_model_latency_ms": 10.06,
+      "pipeline_summary": "Filtered initial 60 candidates to 5 qualified options. Pruned 0 accessories and 7 out-of-budget listings.",
+      "metrics_at_3": {
+        "baseline": {
+          "p@3": 0.667,
+          "r@3": 0.4,
+          "ndcg@3": 0.57
+        },
+        "decision_model": {
+          "p@3": 1.0,
+          "r@3": 0.6,
+          "ndcg@3": 1.0
+        }
+      }
+    }
+  ]
+}

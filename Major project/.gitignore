@@ -1,0 +1,58 @@
+# ==============================================================================
+# SECRETS & SENSITIVE ENVIRONMENT VARIABLES (NEVER COMMIT)
+# ==============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Allow example environment configuration templates
+!.env.example
+!**/.env.example
+
+# ==============================================================================
+# VECTOR DATABASE & RUNTIME STORAGE (GENERATED DYNAMICALLY)
+# ==============================================================================
+qdrant_storage/
+**/qdrant_storage/
+*.lock
+**/*.lock
+.lock
+
+# ==============================================================================
+# PYTHON & ML ARTIFACTS
+# ==============================================================================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# ==============================================================================
+# NODE & JAVA ARTIFACTS
+# ==============================================================================
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+target/
+**/target/
+tools/apache-maven-*/
+
+# ==============================================================================
+# LOGS & TEMPORARY FILES
+# ==============================================================================
+*.log
+**/*.log
+*.pid
+.supervisor.pid
+.idea/
+**/.idea/
+.vscode/
+.DS_Store
+Thumbs.db

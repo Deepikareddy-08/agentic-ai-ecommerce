@@ -1,0 +1,14 @@
+{
+  "name": "agentic-ai-ecommerce-workspace-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Workspace root orchestrator for Agentic AI E-Commerce Platform",
+  "scripts": {
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./Major project/start_services.ps1\"",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./Major project/stop_services.ps1\"",
+    "build": "npm --prefix \"Major project/Major project/frontend\" run build",
+    "dev": "npm --prefix \"Major project/Major project/frontend\" run dev",
+    "preview": "npm --prefix \"Major project/Major project/frontend\" run preview",
+    "install:frontend": "npm --prefix \"Major project/Major project/frontend\" install"
+  }
+}

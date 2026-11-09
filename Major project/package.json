@@ -1,0 +1,13 @@
+{
+  "name": "agentic-ai-ecommerce-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root orchestrator for Agentic AI E-Commerce Platform",
+  "scripts": {
+    "start": "run_all.bat",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File \"stop_services.ps1\"",
+    "dev": "npm --prefix \"Major project/frontend\" run dev",
+    "build": "npm --prefix \"Major project/frontend\" run build",
+    "install:frontend": "npm --prefix \"Major project/frontend\" install"
+  }
+}

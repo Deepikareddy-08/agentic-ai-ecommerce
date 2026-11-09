@@ -1,0 +1,74 @@
+import logging
+import os
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException  # type: ignore # pyrefly: ignore[missing-import]
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore # pyrefly: ignore[missing-import]
+from pydantic import BaseModel  # type: ignore # pyrefly: ignore[missing-import]
+from recommendation_engine import RecommendationEngine
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ml_service")
+
+app = FastAPI(
+    title="E-Commerce ML Recommendation Service",
+    description="Content-Based Recommendation Engine with scikit-learn TF-IDF and Personalization Signals",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+engine = RecommendationEngine()
+
+class RecommendationRequestSchema(BaseModel):
+    user_id: Optional[int] = None
+    category: Optional[str] = None
+    min_budget: Optional[float] = None
+    max_budget: Optional[float] = None
+    purpose: Optional[str] = None
+    required_features: Optional[List[str]] = None
+    preferred_features: Optional[List[str]] = None
+    limit: Optional[int] = 5
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "UP",
+        "service": "ml-recommendation-service",
+        "indexed_products": len(engine.products)
+    }
+
+@app.post("/reload")
+def reload_index():
+    engine.reload_catalogue()
+    return {
+        "message": "Catalogue reloaded successfully",
+        "product_count": len(engine.products)
+    }
+
+@app.post("/recommend")
+def get_recommendations(req: RecommendationRequestSchema):
+    try:
+        results = engine.recommend(
+            user_id=req.user_id,
+            category=req.category,
+            min_budget=req.min_budget,
+            max_budget=req.max_budget,
+            purpose=req.purpose,
+            required_features=req.required_features,
+            preferred_features=req.preferred_features,
+            limit=req.limit or 5
+        )
+        return results
+    except Exception as e:
+        logger.error(f"Error computing recommendations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn  # type: ignore # pyrefly: ignore[missing-import]
+    uvicorn.run(app, host="0.0.0.0", port=8001)
