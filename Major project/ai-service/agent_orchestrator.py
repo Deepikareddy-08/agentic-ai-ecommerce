@@ -1827,11 +1827,7 @@ class AgentOrchestrator:
 
                 ).strip()
 
-                if specific_kw:
-
-                    candidates = agent_tools.search_products(query=specific_kw, max_price=budget, limit=5)
-
-                elif search_kw:
+                if search_kw:
 
                     candidates = agent_tools.search_products(query=search_kw, max_price=budget, limit=5)
 
