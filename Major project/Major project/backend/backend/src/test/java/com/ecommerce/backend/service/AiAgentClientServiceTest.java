@@ -51,3 +51,4 @@ public class AiAgentClientServiceTest {
         assertNull(aiService.detectNonElectronics("MacBook Air M2 vs ThinkPad E14"));
     }
 }
+

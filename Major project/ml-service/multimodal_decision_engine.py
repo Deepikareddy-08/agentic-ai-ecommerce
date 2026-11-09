@@ -234,6 +234,35 @@ class MultimodalDecisionEngine:
         self._save_cache()
 
 
+    def detect_non_electronics(self, text: str) -> Optional[str]:
+        t = text.lower()
+        electronics_exceptions = [
+            r'\b(electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap)\b',
+            r'\b(smart\s*(?:watch|scale|ring|mirror|plug|tv|home))\b',
+            r'\b(laptop\s*(?:bag|sleeve|case|stand)|phone\s*(?:case|cover|holder))\b',
+            r'\b(air\s*fryer|coffee\s*(?:maker|machine)|espresso|blender|mixer|microwave|refrigerator|fridge|washing\s*machine|vacuum|purifier)\b'
+        ]
+        for exc in electronics_exceptions:
+            if re.search(exc, t):
+                return None
+
+        rules = [
+            (r'\b(skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
+            (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
+            (r'\b(grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|coffee\s*(?:beans?|powder)?|tea\s*(?:leaves?|powder|bags?)?|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\b', 'food, groceries & fruits/vegetables'),
+            (r'\b(cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\s*bottles?|bottles?|flasks?|lunch\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\s*stove|gas\s*cylinder)\b', 'kitchenware & cookware'),
+            (r'\b(furnitures?|sofas?|couches?|beds?|cots?|mattresses?|pillows?|blankets?|bedsheets?|curtains?|dining\s*tables?|study\s*tables?|coffee\s*tables?|chairs?\s*(?:wooden|dining|plastic)?|tables?\s*(?:wooden|dining)?|wardrobes?|cupboards?|closets?|bookshelves?|carpets?|rugs?|mats?|cushions?)\b', 'furniture & home decor'),
+            (r'\b(medicines?|pharmacy|drugs?|pills?|syrups?|ointments?|antibiotics?|painkillers?|paracetamol|aspirin|vitamins?\s*(?:tablets?|capsules?|supplements?)?|protein\s*powders?|whey\s*protein|bandages?|first\s*aid|cough\s*syrup)\b', 'medicines & healthcare'),
+            (r'\b(novels?|fiction|non-fiction|textbooks?|story\s*books?|physical\s*books?|paperbacks?|hardcovers?|magazines?|comics?|mangas?|stationer(?:y|ies)|pens?|pencils?|erasers?|rulers?|diar(?:y|ies)|sticky\s*notes?|crayons?|sketchbooks?)\b', 'books & stationery'),
+            (r'\b(toys?|board\s*games?|dolls?|action\s*figures?|lego|puzzles?|baby\s*wipes?|diapers?|pampers?|baby\s*food|pet\s*food|dog\s*food|cat\s*food|pedigree|whiskas?)\b', 'toys & pet supplies'),
+            (r'\b(cricket\s*bats?|footballs?|basketballs?|badminton\s*(?:rackets?|shuttles?)?|shuttlecocks?|tennis\s*rackets?|dumbbells?|barbells?|weights?|gym\s*gloves?|yoga\s*mats?)\b', 'sports & fitness gear'),
+            (r'\b(cars?\s*(?:sale|buy|used|new)?|motorcycles?|bikes?\s*(?:petrol|mountain|gear)?|bicycles?|scooters?\s*(?:petrol)?|apartments?|flats?\s*for\s*(?:sale|rent)|houses?\s*for\s*(?:sale|rent)|plots?|lands?\s*for\s*sale|real\s*estate)\b', 'automobiles & real estate')
+        ]
+        for pattern, cat_name in rules:
+            if re.search(pattern, t):
+                return cat_name
+        return None
+
     def parse_query(self, query: str) -> Dict[str, Any]:
         """
         Step 1: Natural Language Query Understanding (NLU).
@@ -249,8 +278,16 @@ class MultimodalDecisionEngine:
             "required_features": [],
             "preferred_features": [],
             "negative_keywords": [],
-            "intent": "recommendation"
+            "intent": "recommendation",
+            "is_non_electronics": False,
+            "non_electronics_type": None
         }
+
+        non_elec = self.detect_non_electronics(query)
+        if non_elec:
+            reqs["is_non_electronics"] = True
+            reqs["non_electronics_type"] = non_elec
+            return reqs
 
         tokens = set(re.findall(r"[a-z0-9]+", text))
 
@@ -388,7 +425,13 @@ class MultimodalDecisionEngine:
         scored_initial = []
         for p in self.products:
             p_text = f"{p['name']} {p['category']} {p['brand']} {p['description']} {p.get('specifications','')}".lower()
-            overlap_score = sum(3.0 if w in p['name'].lower() else 1.0 for w in retrieval_words if w in p_text)
+            word_match_score = sum(3.0 if w in p['name'].lower() else 1.0 for w in retrieval_words if w in p_text)
+            
+            # If user had specific search words, require at least ONE keyword match or a category match
+            if retrieval_words and not target_category and word_match_score <= 0:
+                continue
+
+            overlap_score = word_match_score
             
             # Category alignment
             if target_category and target_category.lower() in p['category'].lower():
@@ -668,6 +711,25 @@ class MultimodalDecisionEngine:
         """
         # Step 1: NLU
         reqs = self.parse_query(query)
+
+        if reqs.get("is_non_electronics"):
+            non_type = reqs.get("non_electronics_type", "non-electronic items")
+            return {
+                "query": query,
+                "parsed_requirements": reqs,
+                "filtering_statistics": {
+                    "initial_retrieved_count": 0,
+                    "pruned_accessories_count": 0,
+                    "pruned_over_budget_count": 0,
+                    "pruned_under_budget_count": 0,
+                    "surviving_candidates_count": 0,
+                    "target_candidate_limit": target_candidate_limit
+                },
+                "pipeline_summary": f"Query identified as non-electronics ({non_type}). Pruned 0 qualified options.",
+                "total_qualified": 0,
+                "recommendations": [],
+                "explanation": f"Sorry, this catalogue is for electronics only. We do not carry {non_type}."
+            }
 
         # Ensure candidate pool is large enough for deduplication and top_k selection
         effective_candidate_limit = max(target_candidate_limit, max(15, top_k * 3))

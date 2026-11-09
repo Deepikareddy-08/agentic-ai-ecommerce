@@ -271,8 +271,8 @@ def search_products(
     cur.execute(sql, tuple(params))
     rows = cur.fetchall()
 
-    # Fallback to category & price filter if specific token combination yielded no rows (only when category or price constraint exists)
-    if not rows and query and (category or max_price or min_price):
+    # Fallback to category filter if specific token combination yielded no rows (ONLY when category is explicitly present)
+    if not rows and query and category:
         sql_fallback, params_fallback = build_query(use_tokens=False)
         cur.execute(sql_fallback, tuple(params_fallback))
         rows = cur.fetchall()
@@ -478,7 +478,14 @@ def get_recommendations(
         logger.warning(f"ML service unreachable, using direct SQL search fallback: {e}")
 
     # Direct fallback if ML service offline
-    candidates = search_products(category=category, max_price=max_budget, min_price=min_budget, limit=limit)
+    if not category and not query:
+        return {
+            "recommendations": [],
+            "explanation": "No specific category or electronics search query provided.",
+            "strategy": "Empty"
+        }
+
+    candidates = search_products(query=query, category=category, max_price=max_budget, min_price=min_budget, limit=limit)
     recs = []
     for c in candidates:
         recs.append({
@@ -491,7 +498,7 @@ def get_recommendations(
         })
     return {
         "recommendations": recs,
-        "explanation": "Matched top candidates from database catalogue.",
+        "explanation": "Matched top candidates from database catalogue." if recs else "No matching products found in database catalogue.",
         "strategy": "Database Fallback"
     }
 

@@ -14,9 +14,64 @@ import { chatApi, interactionApi } from '../services/api';
 
 
 
+const detectNonElectronicsClient = (text) => {
+  if (!text) return null;
+  const t = text.toLowerCase();
+
+  // Electronics exceptions
+  if (
+    /electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap/i.test(t) ||
+    /smart\s*(?:watch|scale|ring|mirror|plug|tv|home)/i.test(t) ||
+    /laptop\s*(?:bag|sleeve|case|stand)|phone\s*(?:case|cover|holder)/i.test(t) ||
+    /air\s*fryer|coffee\s*(?:maker|machine)|espresso|blender|mixer|microwave|refrigerator|fridge|washing\s*machine|vacuum|purifier/i.test(t)
+  ) {
+    return null;
+  }
+
+  if (
+    /grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|tea|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol/i.test(t) ||
+    /cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\s*bottles?|bottles?|flasks?|lunch\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\s*stove|gas\s*cylinder/i.test(t)
+  ) {
+    return 'food, groceries & kitchenware';
+  }
+
+  if (/dresses?|dresss?|clothes?|clothing|cloths?|apparels?|garments?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion/i.test(t)) {
+    return 'clothing, fashion & footwear';
+  }
+
+  if (/skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder/i.test(t)) {
+    return 'beauty & personal care';
+  }
+
+  if (/furnitures?|sofas?|couches?|beds?|cots?|mattresses?|pillows?|blankets?|bedsheets?|curtains?|dining\s*tables?|study\s*tables?|coffee\s*tables?|chairs?\s*(?:wooden|dining|plastic)?|tables?\s*(?:wooden|dining)?|wardrobes?|cupboards?|closets?|bookshelves?|carpets?|rugs?|mats?|cushions?/i.test(t)) {
+    return 'furniture & home decor';
+  }
+
+  if (/medicines?|pharmacy|drugs?|pills?|syrups?|ointments?|antibiotics?|painkillers?|paracetamol|aspirin|vitamins?\s*(?:tablets?|capsules?|supplements?)?|protein\s*powders?|whey\s*protein|bandages?|first\s*aid|cough\s*syrup/i.test(t)) {
+    return 'medicines & healthcare';
+  }
+
+  if (/novels?|fiction|non-fiction|textbooks?|story\s*books?|physical\s*books?|paperbacks?|hardcovers?|magazines?|comics?|mangas?|stationer(?:y|ies)|pens?|pencils?|erasers?|rulers?|diar(?:y|ies)|notebooks?|sticky\s*notes?|crayons?|sketchbooks?|toys?|board\s*games?|dolls?|action\s*figures?|lego|puzzles?|baby\s*wipes?|diapers?|pampers?|baby\s*food|pet\s*food|dog\s*food|cat\s*food/i.test(t)) {
+    return 'books, stationery & toys';
+  }
+
+  if (/cricket\s*bats?|footballs?|basketballs?|badminton\s*(?:rackets?|shuttles?)?|shuttlecocks?|tennis\s*rackets?|dumbbells?|barbells?|weights?|gym\s*gloves?|yoga\s*mats?/i.test(t)) {
+    return 'sports & fitness gear';
+  }
+
+  return null;
+};
+
 const generateClientSideAgentResponse = (query, catalogProducts = []) => {
-
-
+  const nonElec = detectNonElectronicsClient(query);
+  if (nonElec) {
+    return {
+      conversationId: `client-session-${Date.now()}`,
+      response: `Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We do not carry ${nonElec}. Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!`,
+      recommendedProducts: [],
+      toolsUsed: ['extract_requirements']
+    };
+  }
 
   const lower = query.toLowerCase();
 
@@ -237,6 +292,18 @@ const generateClientSideAgentResponse = (query, catalogProducts = []) => {
     if (matchedCategory.length > 0) {
       candidates = matchedCategory;
     }
+  } else {
+    // When no category detected, strictly filter by significant search words to prevent dumping random products
+    const stopWords = new Set(['i', 'want', 'need', 'show', 'find', 'get', 'suggest', 'recommend', 'best', 'good', 'top', 'looking', 'please', 'can', 'give', 'item', 'items', 'product', 'products', 'under', 'below', 'budget', 'within', 'price', 'for', 'with', 'and', 'or', 'in', 'the', 'a', 'an', 'to', 'of', 'is', 'at', 'by', 'on', 'like', 'would']);
+    const tokens = lower.split(/[^a-z0-9]+/).filter(t => t.length > 2 && !stopWords.has(t));
+    if (tokens.length > 0) {
+      candidates = candidates.filter(p => {
+        const pText = `${p.name || ''} ${p.category || ''} ${p.brand || ''} ${p.description || ''}`.toLowerCase();
+        return tokens.some(tok => pText.includes(tok));
+      });
+    } else {
+      candidates = [];
+    }
   }
 
 
@@ -328,13 +395,7 @@ const generateClientSideAgentResponse = (query, catalogProducts = []) => {
 
 
   if (topPicks.length === 0) {
-
-
-
-    reply = `Sorry, that product is not available in our catalogue ${category || 'your query'}${budgetMax ? ` under ₹${budgetMax.toLocaleString()}` : ''}. Please try adjusting your budget or exploring related categories.`;
-
-
-
+    reply = `Sorry, that product is not available in our electronics catalogue. AuraStore specializes exclusively in consumer electronics, computing devices, smart appliances, audio gear, and gadgets. How can I help you with our electronics catalogue?`;
   } else {
 
 
