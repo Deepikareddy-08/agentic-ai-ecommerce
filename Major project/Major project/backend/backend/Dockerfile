@@ -13,7 +13,7 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/backend-app.jar app.jar
 
 EXPOSE 8080
 
