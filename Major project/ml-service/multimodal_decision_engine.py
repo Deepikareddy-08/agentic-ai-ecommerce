@@ -247,7 +247,7 @@ class MultimodalDecisionEngine:
                 return None
 
         rules = [
-            (r'\b(skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
+            (r'\b(skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
             (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
             (r'\b(grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|coffee\s*(?:beans?|powder)?|tea\s*(?:leaves?|powder|bags?)?|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\b', 'food, groceries & fruits/vegetables'),
             (r'\b(cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\s*bottles?|bottles?|flasks?|lunch\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\s*stove|gas\s*cylinder)\b', 'kitchenware & cookware'),
@@ -310,6 +310,45 @@ class MultimodalDecisionEngine:
             return "creative or general task requests"
 
         return None
+
+    def is_electronics_query(self, text: str) -> bool:
+        """
+        Validates whether the user query is genuinely inquiring about consumer electronics,
+        computing devices, smart appliances, audio gear, or accessories.
+        """
+        if not text or not text.strip():
+            return False
+        t = text.lower().strip()
+
+        electronics_patterns = [
+            # Computers & Laptops
+            r'\b(laptops?|macbooks?|thinkpads?|notebooks?|ultrabooks?|chromebooks?|computers?|desktops?|pcs?)\b',
+            # Smartphones & Mobiles
+            r'\b(smart\s*phones?|cell\s*phones?|iphones?|pixels?|galaxy|redmi|iqoo|poco|vivo|oppo|xiaomi|realme|smartphones?|mobiles?|handsets?|phns?)\b',
+            r'(?<!head)(?<!ear)\b(phones?|phns?)\b',
+            # Tablets & E-readers
+            r'\b(tablets?|ipads?|tabs?|kindles?|paperwhite|remarkable|kobo|digital\s*notebooks?|boox)\b',
+            # Audio & Headphones
+            r'\b(audio|bluetooth|speakers?|soundbars?|earphones?|earbuds?|buds?|headphones?|headsets?|airpods?|ear\s*phones?|ear\s*buds?|head\s*phones?|tws|neckbands?|iems?|soundcore|airdopes|subwoofers?|microphones?|mics?)\b',
+            # TVs & Displays
+            r'\b(smart\s*tvs?|tvs?|televisions?|oled|qled|4k|8k|monitors?|gaming\s*monitors?|curved\s*monitor|ultrawide|projectors?)\b',
+            # Smartwatches & Health Wearables
+            r'\b(smart\s*watch(?:es)?|apple\s*watch|galaxy\s*watch|garmin|fitbit|amazfit|smart\s*rings?|oura|whoop|fitness\s*trackers?|smart\s*bands?)\b',
+            # Cameras, Drones & Gaming
+            r'\b(cameras?|dslrs?|mirrorless|gopro|drones?|quadcopters?|gimbals?|gaming\s*consoles?|ps5|ps4|playstations?|xbox(?:es)?|nintendo|gamepads?|controllers?|vr|meta\s*quest)\b',
+            # Smart Home & Appliances
+            r'\b(robot\s*vacuums?|cordless\s*vacuums?|stick\s*vacuums?|vacuum|purifiers?|air\s*fryers?|coffee\s*machines?|espresso|blenders?|mixers?|refrigerators?|fridges?|washing\s*machines?|microwaves?|dishwashers?)\b',
+            # Accessories & Networking
+            r'\b(routers?|mesh\s*wi-?fi|access\s*points?|keyboards?|mouse|mice|trackpads?|chargers?|adapters?|power\s*banks?|cables?|usb\s*hubs?|docks?|printers?|scanners?)\b',
+            # Electronics Specs & Components
+            r'\b(16gb|8gb|32gb|128gb|256gb|512gb|1tb|2tb|ram|ssd|gpu|cpu|processor|ryzen|snapdragon|intel\s*core|rtx|geforce|anc|noise\s*cancell?ation)\b',
+            # Major Electronics Brands
+            r'\b(apple|samsung|sony|dell|hp|lenovo|asus|acer|logitech|anker|boat|noise|jbl|bose|marshall|dji|dyson|google|oneplus|canon|nikon|breville|de\'?longhi|razer|tp-?link)\b',
+            # General store / catalogue inquiries
+            r'\b(catalog(?:ue)?|products?|items?|electronics|gadgets?|appliances?|devices?)\b'
+        ]
+
+        return any(re.search(pat, t) for pat in electronics_patterns)
 
     def parse_query(self, query: str) -> Dict[str, Any]:
         """
@@ -376,6 +415,12 @@ class MultimodalDecisionEngine:
                 reqs["negative_keywords"] = CATEGORY_NEGATIVE_KEYWORDS["smartphones"]
         elif any(t in tokens for t in ["accessory", "accessories", "sleeve", "bag", "charger", "adapter", "stand", "hub"]):
             reqs["category"] = "Accessories"
+
+        # Guard: If no electronics category detected and query has no electronics terms
+        if not reqs["category"] and not self.is_electronics_query(query):
+            reqs["is_non_electronics"] = True
+            reqs["non_electronics_type"] = "non-electronic items"
+            return reqs
 
 
         # 2. Budget extraction (Handles "under 60,000", "₹60,000", "below 60k", "under 60000", "between 40k and 60k")

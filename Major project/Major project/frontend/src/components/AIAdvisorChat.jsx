@@ -39,7 +39,7 @@ const detectNonElectronicsClient = (text) => {
     return 'clothing, fashion & footwear';
   }
 
-  if (/skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder/i.test(t)) {
+  if (/skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder/i.test(t)) {
     return 'beauty & personal care';
   }
 
@@ -106,6 +106,41 @@ const detectGeneralQueryClient = (text) => {
   return null;
 };
 
+const isElectronicsQueryClient = (text, activeCategory) => {
+  if (!text) return false;
+  const t = text.toLowerCase().trim();
+
+  if (activeCategory) {
+    if (
+      /\b(which\s*(one|is\s*(best|better))|compare|difference|vs|versus)\b/i.test(t) ||
+      /\b(under|below|budget|within|upto|less than)\s*(?:₹|rs\.?|inr)?\s*[0-9]+/i.test(t) ||
+      /\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\b/i.test(t) ||
+      /\b(show\s+more|next|other|reviews?|details?|specs?|price)\b/i.test(t) ||
+      /\b(first\s*one|second\s*one|third\s*one|in\s*that|out\s*of)\b/i.test(t)
+    ) {
+      return true;
+    }
+  }
+
+  const electronicsPatterns = [
+    /\b(laptops?|macbooks?|thinkpads?|notebooks?|ultrabooks?|chromebooks?|computers?|desktops?|pcs?)\b/i,
+    /\b(smart\s*phones?|cell\s*phones?|iphones?|pixels?|galaxy|redmi|iqoo|poco|vivo|oppo|xiaomi|realme|smartphones?|mobiles?|handsets?|phns?)\b/i,
+    /(?<!head)(?<!ear)\b(phones?|phns?)\b/i,
+    /\b(tablets?|ipads?|tabs?|kindles?|paperwhite|remarkable|kobo|digital\s*notebooks?|boox)\b/i,
+    /\b(audio|bluetooth|speakers?|soundbars?|earphones?|earbuds?|buds?|headphones?|headsets?|airpods?|ear\s*phones?|ear\s*buds?|head\s*phones?|tws|neckbands?|iems?|soundcore|airdopes|subwoofers?|microphones?|mics?)\b/i,
+    /\b(smart\s*tvs?|tvs?|televisions?|oled|qled|4k|8k|monitors?|gaming\s*monitors?|curved\s*monitor|ultrawide|projectors?)\b/i,
+    /\b(smart\s*watch(?:es)?|apple\s*watch|galaxy\s*watch|garmin|fitbit|amazfit|smart\s*rings?|oura|whoop|fitness\s*trackers?|smart\s*bands?)\b/i,
+    /\b(cameras?|dslrs?|mirrorless|gopro|drones?|quadcopters?|gimbals?|gaming\s*consoles?|ps5|ps4|playstations?|xbox(?:es)?|nintendo|gamepads?|controllers?|vr|meta\s*quest)\b/i,
+    /\b(robot\s*vacuums?|cordless\s*vacuums?|stick\s*vacuums?|vacuum|purifiers?|air\s*fryers?|coffee\s*machines?|espresso|blenders?|mixers?|refrigerators?|fridges?|washing\s*machines?|microwaves?|dishwashers?)\b/i,
+    /\b(routers?|mesh\s*wi-?fi|access\s*points?|keyboards?|mouse|mice|trackpads?|chargers?|adapters?|power\s*banks?|cables?|usb\s*hubs?|docks?|printers?|scanners?)\b/i,
+    /\b(16gb|8gb|32gb|128gb|256gb|512gb|1tb|2tb|ram|ssd|gpu|cpu|processor|ryzen|snapdragon|intel\s*core|rtx|geforce|anc|noise\s*cancell?ation)\b/i,
+    /\b(apple|samsung|sony|dell|hp|lenovo|asus|acer|logitech|anker|boat|noise|jbl|bose|marshall|dji|dyson|google|oneplus|canon|nikon|breville|de'?longhi|razer|tp-?link)\b/i,
+    /\b(catalog(?:ue)?|products?|items?|electronics|gadgets?|appliances?|devices?)\b/i
+  ];
+
+  return electronicsPatterns.some(pat => pat.test(t));
+};
+
 const generateClientSideAgentResponse = (query, catalogProducts = []) => {
   if (isGreetingClient(query)) {
     return {
@@ -131,6 +166,15 @@ const generateClientSideAgentResponse = (query, catalogProducts = []) => {
     return {
       conversationId: `client-session-${Date.now()}`,
       response: `Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We do not carry ${nonElec}. Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!`,
+      recommendedProducts: [],
+      toolsUsed: ['extract_requirements']
+    };
+  }
+
+  if (!isElectronicsQueryClient(query)) {
+    return {
+      conversationId: `client-session-${Date.now()}`,
+      response: `Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We only carry electronics. How can I help you with our electronics catalogue?`,
       recommendedProducts: [],
       toolsUsed: ['extract_requirements']
     };
@@ -990,10 +1034,14 @@ const AIAdvisorChat = ({ currentUser, products = [], allProducts = [], onOpenPro
             'is not part of our catalogue',
             'does not contain any',
             'do not contain any',
+            'do not carry',
             'sorry, that product',
             'sorry, the product',
             'no products found',
-            'electronics only'
+            'electronics only',
+            'only carry electronics',
+            'outside my expertise',
+            'cannot answer'
           ].some(ph => respLower.includes(ph));
 
           if (isUnavailable) {
@@ -1091,10 +1139,14 @@ const AIAdvisorChat = ({ currentUser, products = [], allProducts = [], onOpenPro
             'is not part of our catalogue',
             'does not contain any',
             'do not contain any',
+            'do not carry',
             'sorry, that product',
             'sorry, the product',
             'no products found',
-            'electronics only'
+            'electronics only',
+            'only carry electronics',
+            'outside my expertise',
+            'cannot answer'
           ].some(ph => directRespLower.includes(ph));
 
           chatData = {

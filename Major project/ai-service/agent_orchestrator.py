@@ -123,7 +123,7 @@ class AgentOrchestrator:
 
         rules = [
             # Beauty, Skincare & Cosmetics
-            (r'\b(skin\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
+            (r'\b(skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
 
             # Fashion, Clothing, Apparel & Footwear
             (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
@@ -206,6 +206,58 @@ class AgentOrchestrator:
             return "creative or general task requests"
 
         return None
+
+    def is_electronics_query(self, text: str, active_category: Optional[str] = None) -> bool:
+        """
+        Validates whether the user query is genuinely inquiring about consumer electronics,
+        computing devices, smart appliances, audio gear, or accessories.
+        """
+        if not text or not text.strip():
+            return False
+        t = text.lower().strip()
+
+        # Follow-up context queries on an active category
+        if active_category:
+            context_followups = [
+                r'\b(which\s*(?:one|is\s*(?:best|better))|compare|difference|vs\.?|versus)\b',
+                r'\b(under|below|budget|within|upto|less than)\s*(?:₹|rs\.?|inr)?\s*[0-9]+',
+                r'\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\b',
+                r'\b(show\s+more|next|other|reviews?|details?|specs?|price)\b',
+                r'\b(first\s*one|second\s*one|third\s*one|in\s*that|out\s*of)\b'
+            ]
+            if any(re.search(pat, t) for pat in context_followups):
+                return True
+
+        # Explicit Electronics Category / Device / Brand / Component patterns
+        electronics_patterns = [
+            # Computers & Laptops
+            r'\b(laptops?|macbooks?|thinkpads?|notebooks?|ultrabooks?|chromebooks?|computers?|desktops?|pcs?)\b',
+            # Smartphones & Mobiles
+            r'\b(smart\s*phones?|cell\s*phones?|iphones?|pixels?|galaxy|redmi|iqoo|poco|vivo|oppo|xiaomi|realme|smartphones?|mobiles?|handsets?|phns?)\b',
+            r'(?<!head)(?<!ear)\b(phones?|phns?)\b',
+            # Tablets & E-readers
+            r'\b(tablets?|ipads?|tabs?|kindles?|paperwhite|remarkable|kobo|digital\s*notebooks?|boox)\b',
+            # Audio & Headphones
+            r'\b(audio|bluetooth|speakers?|soundbars?|earphones?|earbuds?|buds?|headphones?|headsets?|airpods?|ear\s*phones?|ear\s*buds?|head\s*phones?|tws|neckbands?|iems?|soundcore|airdopes|subwoofers?|microphones?|mics?)\b',
+            # TVs & Displays
+            r'\b(smart\s*tvs?|tvs?|televisions?|oled|qled|4k|8k|monitors?|gaming\s*monitors?|curved\s*monitor|ultrawide|projectors?)\b',
+            # Smartwatches & Health Wearables
+            r'\b(smart\s*watch(?:es)?|apple\s*watch|galaxy\s*watch|garmin|fitbit|amazfit|smart\s*rings?|oura|whoop|fitness\s*trackers?|smart\s*bands?)\b',
+            # Cameras, Drones & Gaming
+            r'\b(cameras?|dslrs?|mirrorless|gopro|drones?|quadcopters?|gimbals?|gaming\s*consoles?|ps5|ps4|playstations?|xbox(?:es)?|nintendo|gamepads?|controllers?|vr|meta\s*quest)\b',
+            # Smart Home & Appliances
+            r'\b(robot\s*vacuums?|cordless\s*vacuums?|stick\s*vacuums?|vacuum|purifiers?|air\s*fryers?|coffee\s*machines?|espresso|blenders?|mixers?|refrigerators?|fridges?|washing\s*machines?|microwaves?|dishwashers?)\b',
+            # Accessories & Networking
+            r'\b(routers?|mesh\s*wi-?fi|access\s*points?|keyboards?|mouse|mice|trackpads?|chargers?|adapters?|power\s*banks?|cables?|usb\s*hubs?|docks?|printers?|scanners?)\b',
+            # Electronics Specs & Components
+            r'\b(16gb|8gb|32gb|128gb|256gb|512gb|1tb|2tb|ram|ssd|gpu|cpu|processor|ryzen|snapdragon|intel\s*core|rtx|geforce|anc|noise\s*cancell?ation)\b',
+            # Major Electronics Brands
+            r'\b(apple|samsung|sony|dell|hp|lenovo|asus|acer|logitech|anker|boat|noise|jbl|bose|marshall|dji|dyson|google|oneplus|canon|nikon|breville|de\'?longhi|razer|tp-?link)\b',
+            # General store / catalogue inquiries
+            r'\b(catalog(?:ue)?|products?|items?|electronics|gadgets?|appliances?|devices?)\b'
+        ]
+
+        return any(re.search(pat, t) for pat in electronics_patterns)
 
     def extract_requirements(self, message: str, session: Dict[str, Any]) -> Dict[str, Any]:
 
@@ -379,6 +431,27 @@ class AgentOrchestrator:
                 "is_general_query": True,
                 "general_query_type": gen_query_type,
                 "is_non_electronics": False,
+                "category": None,
+                "budget_max": None,
+                "purpose": None,
+                "required_features": [],
+                "preferred_features": [],
+                "requested_count": None
+            }
+
+        # Guard: Check if query is entirely outside electronics scope
+        if not detected_category and not self.is_electronics_query(text, session.get("active_category")):
+            session["active_category"] = None
+            session["budget_max"] = None
+            session["purpose"] = None
+            session["discussed_product_ids"] = []
+            session["required_features"] = []
+            session["preferred_features"] = []
+            return {
+                "is_greeting": False,
+                "is_general_query": False,
+                "is_non_electronics": True,
+                "non_electronics_type": "non-electronic items",
                 "category": None,
                 "budget_max": None,
                 "purpose": None,

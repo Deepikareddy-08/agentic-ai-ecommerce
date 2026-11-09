@@ -38,7 +38,31 @@ public class AiAgentClientServiceTest {
         assertNotNull(aiService.detectNonElectronics("skin care and sunscreen"));
         assertEquals("beauty & personal care", aiService.detectNonElectronics("skin care and sunscreen"));
 
+        assertNotNull(aiService.detectNonElectronics("i want a sun screen"));
+        assertNotNull(aiService.detectNonElectronics("is there anu cosmotics"));
         assertNotNull(aiService.detectNonElectronics("lipstick and face wash"));
+    }
+
+    @Test
+    public void testIsElectronicsQuery() {
+        // Genuine electronics queries
+        assertTrue(aiService.isElectronicsQuery("i need a laptop under 70000 for coding", null));
+        assertTrue(aiService.isElectronicsQuery("wireless headphones with ANC", null));
+        assertTrue(aiService.isElectronicsQuery("smart tv 55 inch 4k", null));
+        assertTrue(aiService.isElectronicsQuery("Which flagship phone has the best camera and battery?", null));
+        assertTrue(aiService.isElectronicsQuery("smartwatch with heart rate monitor", null));
+        assertTrue(aiService.isElectronicsQuery("MacBook Air M2 vs ThinkPad E14", null));
+        assertTrue(aiService.isElectronicsQuery("show electronics catalogue", null));
+
+        // Follow up on active category
+        assertTrue(aiService.isElectronicsQuery("which is better under 50000", "Laptops"));
+
+        // Non-electronics / Out-of-domain queries
+        assertFalse(aiService.isElectronicsQuery("i want a sun screen", null));
+        assertFalse(aiService.isElectronicsQuery("is there anu cosmotics", null));
+        assertFalse(aiService.isElectronicsQuery("can you give me a football", null));
+        assertFalse(aiService.isElectronicsQuery("do you have guitars", null));
+        assertFalse(aiService.isElectronicsQuery("i want fresh apples and mangoes", null));
     }
 
     @Test

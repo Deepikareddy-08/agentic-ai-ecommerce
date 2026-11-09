@@ -134,6 +134,28 @@ public class AiAgentClientService {
             return chatResp;
         }
 
+        // Guard: Check if query is outside electronics scope (e.g. "is there anu cosmotics", "i want a sun screen", "guitar")
+        if (!isElectronicsQuery(request.getMessage(), conversation.getActiveCategory())) {
+            conversation.setActiveCategory(null);
+            conversation.setBudgetMax(null);
+            conversationRepository.save(conversation);
+
+            String reply = "Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in "
+                    + "verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. "
+                    + "We only carry electronics. How can I help you with our electronics catalogue?";
+
+            ChatMessage assistantMsg = new ChatMessage(conversation, "assistant", reply, null);
+            chatMessageRepository.save(assistantMsg);
+
+            ChatResponse chatResp = new ChatResponse(convId, reply, Collections.emptyList(), List.of("extract_requirements"), Collections.emptyMap());
+            chatResp.setFollowUpSuggestions(List.of(
+                    "Show top laptops under ₹70,000",
+                    "Which flagship phone has the best camera and battery?",
+                    "Show wireless noise-cancelling headphones"
+            ));
+            return chatResp;
+        }
+
         // 1. Try forwarding to Python AI Agent microservice
         try {
             String url = aiServiceUrl + "/agent/chat";
@@ -171,8 +193,11 @@ public class AiAgentClientService {
                                         lowerReply.contains("not in our catalogue") ||
                                         lowerReply.contains("not part of our catalogue") ||
                                         lowerReply.contains("does not contain any") ||
+                                        lowerReply.contains("do not carry") ||
                                         lowerReply.contains("sorry, that product") ||
-                                        lowerReply.contains("electronics only");
+                                        lowerReply.contains("outside my expertise") ||
+                                        lowerReply.contains("electronics only") ||
+                                        lowerReply.contains("only carry electronics");
                 if (isUnavailable) {
                     products = Collections.emptyList();
                 }
@@ -480,7 +505,7 @@ public class AiAgentClientService {
         }
 
         // Beauty, Skincare & Cosmetics
-        if (t.matches(".*\\b(skin\\s*cares?|skincare|skin-care|cosmetics?|makeups?|make-up|face\\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sunscreens?|sunblocks?|lipsticks?|lip\\s*balms?|lip\\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\\s*cream|day\\s*cream|cold\\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\\s*oils?|hair\\s*care|body\\s*wash|soaps?|scrubs?|sheet\\s*masks?|beauty\\s*products?|kajal|blush|compact\\s*powder)\\b.*")) {
+        if (t.matches(".*\\b(skin\\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\\s*screens?|sunscreens?|sun\\s*blocks?|sunblocks?|lipsticks?|lip\\s*balms?|lip\\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\\s*cream|day\\s*cream|cold\\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\\s*oils?|hair\\s*care|body\\s*wash|soaps?|scrubs?|sheet\\s*masks?|beauty\\s*products?|kajal|blush|compact\\s*powder)\\b.*")) {
             return "beauty & personal care";
         }
 
@@ -544,5 +569,33 @@ public class AiAgentClientService {
         }
 
         return null;
+    }
+
+    public boolean isElectronicsQuery(String text, String activeCategory) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String t = text.toLowerCase().trim();
+
+        if (activeCategory != null && !activeCategory.trim().isEmpty()) {
+            if (t.matches(".*\\b(which\\s*(one|is\\s*(best|better))|compare|difference|vs|versus)\\b.*") ||
+                t.matches(".*\\b(under|below|budget|within|upto|less than)\\s*(₹|rs\\.?|inr)?\\s*[0-9]+.*") ||
+                t.matches(".*\\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\\b.*") ||
+                t.matches(".*\\b(show\\s+more|next|other|reviews?|details?|specs?|price)\\b.*") ||
+                t.matches(".*\\b(first\\s*one|second\\s*one|third\\s*one|in\\s*that|out\\s*of)\\b.*")) {
+                return true;
+            }
+        }
+
+        return t.matches(".*\\b(laptops?|macbooks?|thinkpads?|notebooks?|ultrabooks?|chromebooks?|computers?|desktops?|pcs?)\\b.*") ||
+               t.matches(".*\\b(smart\\s*phones?|cell\\s*phones?|iphones?|pixels?|galaxy|redmi|iqoo|poco|vivo|oppo|xiaomi|realme|smartphones?|mobiles?|handsets?|phns?)\\b.*") ||
+               t.matches(".*\\b(tablets?|ipads?|tabs?|kindles?|paperwhite|remarkable|kobo|digital\\s*notebooks?|boox)\\b.*") ||
+               t.matches(".*\\b(audio|bluetooth|speakers?|soundbars?|earphones?|earbuds?|buds?|headphones?|headsets?|airpods?|ear\\s*phones?|ear\\s*buds?|head\\s*phones?|tws|neckbands?|iems?|soundcore|airdopes|subwoofers?|microphones?|mics?)\\b.*") ||
+               t.matches(".*\\b(smart\\s*tvs?|tvs?|televisions?|oled|qled|4k|8k|monitors?|gaming\\s*monitors?|curved\\s*monitor|ultrawide|projectors?)\\b.*") ||
+               t.matches(".*\\b(smart\\s*watch(es)?|apple\\s*watch|galaxy\\s*watch|garmin|fitbit|amazfit|smart\\s*rings?|oura|whoop|fitness\\s*trackers?|smart\\s*bands?)\\b.*") ||
+               t.matches(".*\\b(cameras?|dslrs?|mirrorless|gopro|drones?|quadcopters?|gimbals?|gaming\\s*consoles?|ps5|ps4|playstations?|xbox(es)?|nintendo|gamepads?|controllers?|vr|meta\\s*quest)\\b.*") ||
+               t.matches(".*\\b(robot\\s*vacuums?|cordless\\s*vacuums?|stick\\s*vacuums?|vacuum|purifiers?|air\\s*fryers?|coffee\\s*machines?|espresso|blenders?|mixers?|refrigerators?|fridges?|washing\\s*machines?|microwaves?|dishwashers?)\\b.*") ||
+               t.matches(".*\\b(routers?|mesh\\s*wi-?fi|access\\s*points?|keyboards?|mouse|mice|trackpads?|chargers?|adapters?|power\\s*banks?|cables?|usb\\s*hubs?|docks?|printers?|scanners?)\\b.*") ||
+               t.matches(".*\\b(16gb|8gb|32gb|128gb|256gb|512gb|1tb|2tb|ram|ssd|gpu|cpu|processor|ryzen|snapdragon|intel\\s*core|rtx|geforce|anc|noise\\s*cancell?ation)\\b.*") ||
+               t.matches(".*\\b(apple|samsung|sony|dell|hp|lenovo|asus|acer|logitech|anker|boat|noise|jbl|bose|marshall|dji|dyson|google|oneplus|canon|nikon|breville|de'?longhi|razer|tp-?link)\\b.*") ||
+               t.matches(".*\\b(catalog(ue)?|products?|items?|electronics|gadgets?|appliances?|devices?)\\b.*");
     }
 }
