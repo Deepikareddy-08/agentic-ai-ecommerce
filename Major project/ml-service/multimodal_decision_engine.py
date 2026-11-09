@@ -236,6 +236,11 @@ class MultimodalDecisionEngine:
 
     def detect_non_electronics(self, text: str) -> Optional[str]:
         t = text.lower()
+
+        # Immediate hard checks for beauty / sunscreen variations (regardless of spacing/typos)
+        if re.search(r'\b(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?\b|\bsunscre+n+s?\b|\bsunblock\w*\b|\bspf\b|\bspf\s*\d+\b', t):
+            return 'beauty & skin care'
+
         electronics_exceptions = [
             r'\b(electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap)\b',
             r'\b(smart\s*(?:watch|scale|ring|mirror|plug|tv|home))\b',
@@ -247,7 +252,7 @@ class MultimodalDecisionEngine:
                 return None
 
         rules = [
-            (r'\b(skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
+            (r'\b(?:skin\s*cares?|skincare|skin-care|cosm[aeo\w]*|make-?ups?|face\s*wash|cleansers?|toners?|serums?|moisturiz\w*|lotions?|(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?|sunscre+n+s?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder|spf\b|\bspf\s*\d+)\b', 'beauty & skin care'),
             (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
             (r'\b(grocer(?:y|ies)|foods?|snacks?|fruits?|friuts?|vegetables?|vegetbale|vegtables|veggies?|vegies?|apples?|bananas?|mangos?|mangoes?|oranges?|potatoes?|potatos?|tomatoes?|tomatos?|onions?|garlic|ginger|carrots?|cabbages?|spinach|lemons?|rice|wheat|flour|atta|dal|pulses?|bread|milk|cheeses?|butter|yogurt|curd|eggs?|meats?|chickens?|fish|seafood|mutton|prawns?|cooking\s*oil|mustard\s*oil|sunflower\s*oil|ghee|spices?|masala|sugar|salt|coffee\s*(?:beans?|powder)?|tea\s*(?:leaves?|powder|bags?)?|chocolates?|cand(?:y|ies)|biscuits?|cookies?|beverages?|soft\s*drinks?|juices?|sodas?|beers?|wines?|alcohol)\b', 'food, groceries & fruits/vegetables'),
             (r'\b(cutters?|choppers?|peelers?|knives|knife|scissors?|graters?|slicers?|cookware|pans?|pots?|utensils?|plates?|bowls?|spoons?|forks?|water\s*bottles?|bottles?|flasks?|lunch\s*box(?:es)?|tiffin(?:s)?|cooker(?:s)?|gas\s*stove|gas\s*cylinder)\b', 'kitchenware & cookware'),
@@ -319,6 +324,14 @@ class MultimodalDecisionEngine:
         if not text or not text.strip():
             return False
         t = text.lower().strip()
+
+        # Hard guard: Non-electronics (beauty, cosmetics, sunscreen, food, clothes) or general QA NEVER qualify
+        if self.detect_non_electronics(t) is not None:
+            return False
+        if self.detect_general_query(t) is not None:
+            return False
+        if re.search(r'\b(?:sun|tan)\s*(?:scre|block|protect|lotion|cream|oil|spray)|\bspf\b', t):
+            return False
 
         electronics_patterns = [
             # Computers & Laptops
@@ -509,6 +522,16 @@ class MultimodalDecisionEngine:
             "target_candidate_limit": target_candidate_limit
         }
 
+        # Guard: If query is identified as non-electronics or not in electronics scope, return empty
+        if (
+            self.detect_non_electronics(reqs["raw_query"]) or
+            self.detect_general_query(reqs["raw_query"]) or
+            not self.is_electronics_query(reqs["raw_query"])
+        ):
+            stats["initial_retrieved_count"] = 0
+            stats["surviving_candidates_count"] = 0
+            return [], stats
+
         # Step 2A: Broad retrieval with query expansion
         target_category = reqs.get("category")
         budget_max = reqs.get("budget_max")
@@ -520,7 +543,10 @@ class MultimodalDecisionEngine:
             "want", "need", "find", "give", "like", "would", "from", "that", "this", "have",
             "product", "products", "item", "items", "who", "whom", "whose", "what", "where",
             "when", "why", "how", "which", "are", "was", "were", "tell", "explain", "about",
-            "does", "did", "do", "name", "you", "your", "can", "is", "a", "an", "to", "in", "of"
+            "does", "did", "do", "name", "you", "your", "can", "is", "a", "an", "to", "in", "of",
+            "there", "any", "anu", "some", "all", "every", "other", "available", "has", "had",
+            "got", "get", "without", "into", "onto", "over", "above", "please", "sir", "madam",
+            "help", "search", "looking", "check", "say", "it", "these", "those"
         }
         retrieval_words = set(w for w in query_words if len(w) > 2 and w not in stop_words)
 
@@ -863,7 +889,7 @@ class MultimodalDecisionEngine:
                 "explanation": f"Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively for electronics at AuraStore. I cannot answer questions like \"{query.strip()}\"."
             }
 
-        if reqs.get("is_non_electronics"):
+        if reqs.get("is_non_electronics") or not self.is_electronics_query(query):
             non_type = reqs.get("non_electronics_type", "non-electronic items")
             return {
                 "query": query,
@@ -879,7 +905,7 @@ class MultimodalDecisionEngine:
                 "pipeline_summary": f"Query identified as non-electronics ({non_type}). Pruned 0 qualified options.",
                 "total_qualified": 0,
                 "recommendations": [],
-                "explanation": f"Sorry, this catalogue is for electronics only. We do not carry {non_type}."
+                "explanation": f"Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We do not carry {non_type}. Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!"
             }
 
         # Ensure candidate pool is large enough for deduplication and top_k selection

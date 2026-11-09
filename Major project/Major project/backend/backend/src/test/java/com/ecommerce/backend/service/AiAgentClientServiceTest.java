@@ -38,7 +38,10 @@ public class AiAgentClientServiceTest {
         assertNotNull(aiService.detectNonElectronics("skin care and sunscreen"));
         assertEquals("beauty & personal care", aiService.detectNonElectronics("skin care and sunscreen"));
 
+        assertNotNull(aiService.detectNonElectronics("is there any sun screenns"));
         assertNotNull(aiService.detectNonElectronics("i want a sun screen"));
+        assertNotNull(aiService.detectNonElectronics("sun scren"));
+        assertNotNull(aiService.detectNonElectronics("spf 50"));
         assertNotNull(aiService.detectNonElectronics("is there anu cosmotics"));
         assertNotNull(aiService.detectNonElectronics("lipstick and face wash"));
     }
@@ -58,7 +61,11 @@ public class AiAgentClientServiceTest {
         assertTrue(aiService.isElectronicsQuery("which is better under 50000", "Laptops"));
 
         // Non-electronics / Out-of-domain queries
+        assertFalse(aiService.isElectronicsQuery("is there any sun screenns", null));
+        assertFalse(aiService.isElectronicsQuery("is there any sun screenns", "Monitors & Displays"));
         assertFalse(aiService.isElectronicsQuery("i want a sun screen", null));
+        assertFalse(aiService.isElectronicsQuery("i want a sun screen", "Smartphones"));
+        assertFalse(aiService.isElectronicsQuery("spf 50", null));
         assertFalse(aiService.isElectronicsQuery("is there anu cosmotics", null));
         assertFalse(aiService.isElectronicsQuery("can you give me a football", null));
         assertFalse(aiService.isElectronicsQuery("do you have guitars", null));

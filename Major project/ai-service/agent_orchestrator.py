@@ -110,6 +110,10 @@ class AgentOrchestrator:
         """
         t = text.lower()
 
+        # Immediate hard checks for beauty / sunscreen variations (regardless of spacing/typos)
+        if re.search(r'\b(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?\b|\bsunscre+n+s?\b|\bsunblock\w*\b|\bspf\b|\bspf\s*\d+\b', t):
+            return 'beauty & skin care'
+
         # Guard: Exclude queries that explicitly mention genuine electronics terms
         electronics_exceptions = [
             r'\b(electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap)\b',
@@ -123,7 +127,7 @@ class AgentOrchestrator:
 
         rules = [
             # Beauty, Skincare & Cosmetics
-            (r'\b(skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder)\b', 'beauty & skin care'),
+            (r'\b(?:skin\s*cares?|skincare|skin-care|cosm[aeo\w]*|make-?ups?|face\s*wash|cleansers?|toners?|serums?|moisturiz\w*|lotions?|(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?|sunscre+n+s?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder|spf\b|\bspf\s*\d+)\b', 'beauty & skin care'),
 
             # Fashion, Clothing, Apparel & Footwear
             (r'\b(clothes?|clothing|cloths?|apparels?|garments?|dresses?|dresss?|shirts?|t-?shirts?|tees?|pants?|trousers?|jeans?|jackets?|hoodies?|sweaters?|coats?|suits?|blazers?|sarees?|saris?|kurtas?|kurtis?|lehengas?|skirts?|shorts?|underwears?|socks?|shoes?|sneakers?|boots?|sandals?|slippers?|footwear|heels?|crocs?|belts?|wallets?|handbags?|purses?|tote\s*bags?|luggage|suitcases?|jewelr(?:y|ies)|necklaces?|rings?\s*(?:gold|diamond|silver)?|earrings?|bracelets?|bangles?|fashion)\b', 'clothing, fashion & footwear'),
@@ -216,12 +220,21 @@ class AgentOrchestrator:
             return False
         t = text.lower().strip()
 
+        # Hard guard: Non-electronics or general QA queries NEVER qualify as electronics
+        if self.detect_non_electronics(t) is not None:
+            return False
+        if self.detect_general_query(t) is not None:
+            return False
+        if re.search(r'\b(?:sun|tan)\s*(?:scre|block|protect|lotion|cream|oil|spray)|\bspf\b', t):
+            return False
+
         # Follow-up context queries on an active category
         if active_category:
             context_followups = [
                 r'\b(which\s*(?:one|is\s*(?:best|better))|compare|difference|vs\.?|versus)\b',
                 r'\b(under|below|budget|within|upto|less than)\s*(?:₹|rs\.?|inr)?\s*[0-9]+',
-                r'\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\b',
+                r'\b(battery|camera|ram|storage|processor|charging|warranty|color|black|white|blue|silver|5g)\b',
+                r'\b(touch\s*screen|curved\s*screen|oled\s*screen|display\s*screen|screen\s*size|refresh\s*rate)\b',
                 r'\b(show\s+more|next|other|reviews?|details?|specs?|price)\b',
                 r'\b(first\s*one|second\s*one|third\s*one|in\s*that|out\s*of)\b'
             ]
@@ -395,9 +408,9 @@ class AgentOrchestrator:
 
 
 
-        # Check if user query is for non-electronics (cosmetics, fashion, food, etc.)
+        # Check if user query is for non-electronics (cosmetics, fashion, food, etc.) - ALWAYS HIGHEST PRIORITY
         non_elec_type = self.detect_non_electronics(text)
-        if non_elec_type and not detected_category:
+        if non_elec_type:
             session["active_category"] = None
             session["budget_max"] = None
             session["purpose"] = None
@@ -417,9 +430,9 @@ class AgentOrchestrator:
                 "requested_count": None
             }
 
-        # Check if user query is a general knowledge / who-is / creative request
+        # Check if user query is a general knowledge / who-is / creative request - HIGHEST PRIORITY
         gen_query_type = self.detect_general_query(text)
-        if gen_query_type and not detected_category:
+        if gen_query_type:
             session["active_category"] = None
             session["budget_max"] = None
             session["purpose"] = None
@@ -439,8 +452,8 @@ class AgentOrchestrator:
                 "requested_count": None
             }
 
-        # Guard: Check if query is entirely outside electronics scope
-        if not detected_category and not self.is_electronics_query(text, session.get("active_category")):
+        # Guard: Check if query is outside electronics scope
+        if not self.is_electronics_query(text, session.get("active_category")):
             session["active_category"] = None
             session["budget_max"] = None
             session["purpose"] = None
@@ -482,9 +495,9 @@ class AgentOrchestrator:
             is_follow_up_on_category = (
                 any(w in text for w in [
                     "which", "compare", "better", "best", "vs", "difference", "in that", "out of",
-                    "battery", "camera", "ram", "storage", "display", "processor", "screen",
+                    "battery", "camera", "ram", "storage", "display", "processor",
                     "charging", "warranty", "color", "black", "blue", "white", "silver", "5g",
-                    "gaming", "review", "does it", "is it", "more", "other", "next"
+                    "gaming", "review", "does it", "is it"
                 ])
                 or re.search(r'\b(under|below|budget|within|upto|less than)\s*(?:₹|rs\.?|inr)?\s*[0-9]+', text)
             )
@@ -852,13 +865,13 @@ class AgentOrchestrator:
             }
 
 
-        if reqs.get("is_non_electronics"):
+        if reqs.get("is_non_electronics") or not self.is_electronics_query(user_message, session.get("active_category")):
             non_type = reqs.get("non_electronics_type", "non-electronic items")
             reply = (
                 f"Sorry, that product is not available in our catalogue. AuraStore specializes exclusively "
                 f"in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. "
                 f"We do not carry {non_type}. "
-                f"How can I help you with our electronics catalogue?"
+                f"Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!"
             )
             session["history"].append({"role": "user", "content": user_message})
             session["history"].append({"role": "assistant", "content": reply})

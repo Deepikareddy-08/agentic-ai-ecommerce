@@ -18,6 +18,11 @@ const detectNonElectronicsClient = (text) => {
   if (!text) return null;
   const t = text.toLowerCase();
 
+  // Immediate hard checks for beauty / sunscreen variations (regardless of spacing/typos)
+  if (/\b(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?\b|\bsunscre+n+s?\b|\bsunblock\w*\b|\bspf\b|\bspf\s*\d+\b/i.test(t)) {
+    return 'beauty & personal care';
+  }
+
   // Electronics exceptions
   if (
     /electric\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\s*(?:dryer|styler)|airwrap/i.test(t) ||
@@ -39,7 +44,7 @@ const detectNonElectronicsClient = (text) => {
     return 'clothing, fashion & footwear';
   }
 
-  if (/skin\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\s*screens?|sunscreens?|sun\s*blocks?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder/i.test(t)) {
+  if (/skin\s*cares?|skincare|skin-care|cosm[aeo\w]*|make-?ups?|face\s*wash|cleansers?|toners?|serums?|moisturiz\w*|lotions?|(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?|sunscre+n+s?|sunblocks?|lipsticks?|lip\s*balms?|lip\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\s*cream|day\s*cream|cold\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\s*oils?|hair\s*care|body\s*wash|soaps?|scrubs?|sheet\s*masks?|beauty\s*products?|kajal|blush|compact\s*powder|spf\b|\bspf\s*\d+/i.test(t)) {
     return 'beauty & personal care';
   }
 
@@ -110,11 +115,17 @@ const isElectronicsQueryClient = (text, activeCategory) => {
   if (!text) return false;
   const t = text.toLowerCase().trim();
 
+  // Hard guard: Non-electronics or general QA queries NEVER qualify as electronics
+  if (detectNonElectronicsClient(text) !== null) return false;
+  if (detectGeneralQueryClient(text) !== null) return false;
+  if (/\b(?:sun|tan)\s*(?:scre|block|protect|lotion|cream|oil|spray)|\bspf\b/i.test(t)) return false;
+
   if (activeCategory) {
     if (
       /\b(which\s*(one|is\s*(best|better))|compare|difference|vs|versus)\b/i.test(t) ||
       /\b(under|below|budget|within|upto|less than)\s*(?:₹|rs\.?|inr)?\s*[0-9]+/i.test(t) ||
-      /\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\b/i.test(t) ||
+      /\b(battery|camera|ram|storage|processor|charging|warranty|color|black|white|blue|silver|5g)\b/i.test(t) ||
+      /\b(touch\s*screen|curved\s*screen|oled\s*screen|display\s*screen|screen\s*size|refresh\s*rate)\b/i.test(t) ||
       /\b(show\s+more|next|other|reviews?|details?|specs?|price)\b/i.test(t) ||
       /\b(first\s*one|second\s*one|third\s*one|in\s*that|out\s*of)\b/i.test(t)
     ) {
@@ -1187,13 +1198,30 @@ const AIAdvisorChat = ({ currentUser, products = [], allProducts = [], onOpenPro
 
 
     if (!chatData) {
-
-
-
       chatData = generateClientSideAgentResponse(query.trim(), catalogLookup);
+    }
 
+    // Final Client-Side Safety Interceptor:
+    // If user asked about non-electronics or general QA, guarantee 0 product cards and the decline message
+    const clientNonElec = detectNonElectronicsClient(query.trim());
+    const clientGen = detectGeneralQueryClient(query.trim());
+    const clientIsElec = isElectronicsQueryClient(query.trim());
 
-
+    if (clientNonElec || clientGen || !clientIsElec) {
+      if (chatData) {
+        chatData.recommendedProducts = [];
+        const respLower = (chatData.response || '').toLowerCase();
+        const hasWaterFall = respLower.includes('decision filter waterfall') || respLower.includes('multimodal decision engine') || respLower.includes('filtered initial');
+        if (hasWaterFall || !chatData.response || (!respLower.includes('sorry') && !respLower.includes('not available'))) {
+          if (clientNonElec) {
+            chatData.response = `Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We do not carry ${clientNonElec}. Please let us know if you need help finding laptops, smartphones, headphones, smart TVs, tablets, or smartwatches!`;
+          } else if (clientGen) {
+            chatData.response = `Sorry, that is outside my expertise. I am an AI Shopping Advisor designed exclusively to assist with exploring, comparing, and recommending consumer electronics, computing devices, smart appliances, audio gear, and gadgets at AuraStore. I cannot answer questions like "${query.trim()}". How can I help you with our electronics catalogue?`;
+          } else {
+            chatData.response = `Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in verified consumer electronics, computing devices, smart appliances, audio gear, and gadgets. We only carry electronics. How can I help you with our electronics catalogue?`;
+          }
+        }
+      }
     }
 
 

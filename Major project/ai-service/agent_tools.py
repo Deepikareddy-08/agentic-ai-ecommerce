@@ -422,6 +422,21 @@ def get_recommendations(
     """
     Call ML recommendation service for content-based candidate ranking.
     """
+    # Guard: Non-electronics queries or general QA must never return product recommendations
+    if query:
+        q_lower = query.lower()
+        if (
+            re.search(r'\b(?:sun|tan)\s*(?:scre+n+|block|protect\w*|lotion|cream|oil|gel|spray)s?\b|\bsunscre+n+s?\b|\bsunblock\w*\b|\bspf\b|\bspf\s*\d+\b', q_lower) or
+            re.search(r'\b(?:skin\s*cares?|skincare|cosm\w*|make-?ups?|grocer\w*|fruits?|friuts?|vegetab\w*|veggies?|cutters?|choppers?|dresses?|clothes?|clothing|shoes?)\b', q_lower) or
+            re.search(r'\bwho\s+(?:is|was|are|were|created|made|built|owns)\b', q_lower)
+        ):
+            return {
+                "recommendations": [],
+                "explanation": "Sorry, that product is not available in our catalogue. AuraStore specializes exclusively in consumer electronics.",
+                "pipeline_summary": "Query identified as non-electronics. Pruned 0 qualified options.",
+                "strategy": "Non-Electronics Declination"
+            }
+
     # Attempt intelligent decision model first if natural language query exists
     if query:
         synth_query = query

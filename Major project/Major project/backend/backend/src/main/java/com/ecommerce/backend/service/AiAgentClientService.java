@@ -197,7 +197,10 @@ public class AiAgentClientService {
                                         lowerReply.contains("sorry, that product") ||
                                         lowerReply.contains("outside my expertise") ||
                                         lowerReply.contains("electronics only") ||
-                                        lowerReply.contains("only carry electronics");
+                                        lowerReply.contains("only carry electronics") ||
+                                        detectNonElectronics(request.getMessage()) != null ||
+                                        detectGeneralOrNonShoppingQuery(request.getMessage()) != null ||
+                                        !isElectronicsQuery(request.getMessage(), null);
                 if (isUnavailable) {
                     products = Collections.emptyList();
                 }
@@ -485,6 +488,11 @@ public class AiAgentClientService {
         if (text == null || text.trim().isEmpty()) return null;
         String t = text.toLowerCase();
 
+        // Immediate hard check for beauty / sunscreen variations (regardless of spacing or typos)
+        if (t.matches(".*\\b((sun|tan)\\s*(scre+n+|block|protect\\w*|lotion|cream|oil|gel|spray)s?|sunscre+n+s?|sunblock\\w*|spf|spf\\s*\\d+)\\b.*")) {
+            return "beauty & personal care";
+        }
+
         // Exceptions: Genuine electronics terms
         if (t.matches(".*\\b(electric\\s*(?:shaver|toothbrush|blanket|kettle|cooker)|hair\\s*(?:dryer|styler)|airwrap)\\b.*") ||
             t.matches(".*\\b(smart\\s*(?:watch|scale|ring|mirror|plug|tv|home))\\b.*") ||
@@ -505,7 +513,7 @@ public class AiAgentClientService {
         }
 
         // Beauty, Skincare & Cosmetics
-        if (t.matches(".*\\b(skin\\s*cares?|skincare|skin-care|cosm[aeo]tics?|makeups?|make-up|face\\s*wash|cleansers?|toners?|serums?|moisturizers?|lotions?|sun\\s*screens?|sunscreens?|sun\\s*blocks?|sunblocks?|lipsticks?|lip\\s*balms?|lip\\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\\s*cream|day\\s*cream|cold\\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\\s*oils?|hair\\s*care|body\\s*wash|soaps?|scrubs?|sheet\\s*masks?|beauty\\s*products?|kajal|blush|compact\\s*powder)\\b.*")) {
+        if (t.matches(".*\\b(skin\\s*cares?|skincare|skin-care|cosm[aeo\\w]*|make-?ups?|face\\s*wash|cleansers?|toners?|serums?|moisturiz\\w*|lotions?|(sun|tan)\\s*(scre+n+|block|protect\\w*|lotion|cream|oil|gel|spray)s?|sunscre+n+s?|sunblocks?|lipsticks?|lip\\s*balms?|lip\\s*gloss|eyeliners?|mascaras?|foundations?|concealers?|creams?|night\\s*cream|day\\s*cream|cold\\s*cream|perfumes?|deodorants?|fragrances?|colognes?|shampoos?|conditioners?|hair\\s*oils?|hair\\s*care|body\\s*wash|soaps?|scrubs?|sheet\\s*masks?|beauty\\s*products?|kajal|blush|compact\\s*powder|spf|spf\\s*\\d+)\\b.*")) {
             return "beauty & personal care";
         }
 
@@ -575,10 +583,16 @@ public class AiAgentClientService {
         if (text == null || text.trim().isEmpty()) return false;
         String t = text.toLowerCase().trim();
 
+        // Hard guard: Non-electronics or general QA queries NEVER qualify as electronics
+        if (detectNonElectronics(text) != null) return false;
+        if (detectGeneralOrNonShoppingQuery(text) != null) return false;
+        if (t.matches(".*\\b((sun|tan)\\s*(scre|block|protect|lotion|cream|oil|spray)|spf)\\b.*")) return false;
+
         if (activeCategory != null && !activeCategory.trim().isEmpty()) {
             if (t.matches(".*\\b(which\\s*(one|is\\s*(best|better))|compare|difference|vs|versus)\\b.*") ||
                 t.matches(".*\\b(under|below|budget|within|upto|less than)\\s*(₹|rs\\.?|inr)?\\s*[0-9]+.*") ||
-                t.matches(".*\\b(battery|camera|ram|storage|display|processor|screen|charging|warranty|color|black|white|blue|silver|5g)\\b.*") ||
+                t.matches(".*\\b(battery|camera|ram|storage|processor|charging|warranty|color|black|white|blue|silver|5g)\\b.*") ||
+                t.matches(".*\\b(touch\\s*screen|curved\\s*screen|oled\\s*screen|display\\s*screen|screen\\s*size|refresh\\s*rate)\\b.*") ||
                 t.matches(".*\\b(show\\s+more|next|other|reviews?|details?|specs?|price)\\b.*") ||
                 t.matches(".*\\b(first\\s*one|second\\s*one|third\\s*one|in\\s*that|out\\s*of)\\b.*")) {
                 return true;
