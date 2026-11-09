@@ -61,8 +61,8 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
                         // Public Endpoints
+                        .requestMatchers("/", "/health", "/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers("/api/recommendations/**").permitAll()
                         .requestMatchers("/api/compare/**").permitAll()
